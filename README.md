@@ -1,4 +1,4 @@
-# 📦 Sistema de Gestión de Inventario
+# Sistema de Gestión de Inventario
 
 Proyecto universitario orientado a la administración y control de inventarios.
 
