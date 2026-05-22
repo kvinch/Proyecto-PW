@@ -1,16 +1,87 @@
-# React + Vite
+# 📦 Sistema de Gestión de Inventario
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Proyecto universitario orientado a la administración y control de inventarios.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+# 1. Módulo de Autenticación y Seguridad
 
-## React Compiler
+Garantiza el acceso controlado y la protección de los datos del sistema.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Código | Requerimiento |
+|---|---|
+| RF-01 | Inicio de sesión mediante usuario y contraseña |
+| RF-02 | Validación de credenciales y estado de cuenta |
+| RF-03 | Cierre seguro de sesión |
+| RF-04 | Cambio de contraseña del usuario autenticado |
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+# 2. Módulo de Gestión de Usuarios
+
+Administración de usuarios con roles predefinidos.
+
+## Roles del Sistema
+
+- Administrador
+- Supervisor
+- Operario
+
+| Código | Requerimiento |
+|---|---|
+| RF-05 | Registro de nuevos usuarios |
+| RF-06 | Edición de información de usuarios |
+| RF-07 | Desactivación de cuentas |
+| RF-08 | Búsqueda y filtros de usuarios |
+| RF-09 | Restricción de acceso según rol |
+
+---
+
+# 3. Módulo de Gestión de Inventario
+
+Permite el control centralizado de equipos y materiales.
+
+| Código | Requerimiento |
+|---|---|
+| RF-10 | Registro de equipos y materiales |
+| RF-11 | Edición de productos |
+| RF-12 | Consulta de inventario con filtros |
+| RF-13 | Alerta visual de stock crítico |
+
+---
+
+# 4. Módulo de Entradas
+
+Gestión de ingresos de materiales al inventario.
+
+| Código | Requerimiento |
+|---|---|
+| RF-14 | Registro de entradas de materiales |
+| RF-16 | Actualización automática del stock |
+| RF-17 | Historial filtrado de entradas |
+
+---
+
+# 5. Módulo de Salidas
+
+Gestión de egresos de materiales y control de movimientos.
+
+| Código | Requerimiento |
+|---|---|
+| RF-15 | Registro de salidas de materiales |
+| RF-16 | Actualización automática del stock |
+| RF-18 | Historial filtrado de salidas |
+
+---
+
+# Tecnologías Utilizadas
+
+- Frontend: React + Tailwind CSS
+- Backend: Por definir
+- Base de Datos: Por definir
+
+---
+
+# Objetivo del Proyecto
+
+Desarrollar un sistema de gestión de inventarios que facilite el control de materiales, usuarios y movimientos dentro de una organización.
