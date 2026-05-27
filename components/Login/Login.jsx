@@ -41,10 +41,7 @@ const Login = () => {
               </div>
 
               <div className="flex items-center justify-between text-xs text-slate-500">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input type="checkbox" className="h-4 w-4 rounded border-slate-200 text-blue-600 focus:ring-blue-500/20 focus:ring-offset-0 transition-colors" />
-                  <span>Recuérdame</span>
-                </label>
+                
               </div>
 
               <button
