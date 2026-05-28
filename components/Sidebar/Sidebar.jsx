@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 // Importamos Link y useLocation desde react-router-dom
 import { Link, useLocation } from 'react-router-dom';
 import { 
@@ -13,16 +13,38 @@ import {
 } from 'lucide-react';
 
 const menuItems = [
-  { icon: Home, label: 'Inicio', path: '/a' },
-  { icon: Package, label: 'Inventarios', path: '/b' },
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/c' },
-  { icon: History, label: 'Historial de Movimientos', path: '/e' },
-  { icon: Settings, label: 'Gestión de Usuarios', path: '/f' },
+  { icon: Home, label: 'Inicio', path: '/Inicio' },
+  { icon: Package, label: 'Inventarios', path: '/Inventarios' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/Dashboard' },
+  { icon: History, label: 'Historial de Movimientos', path: '/Historial de Movimientos' },
+  { icon: Settings, label: 'Gestión de Usuarios', path: '/Usuarios' }
 ];
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
-    const location = useLocation();
+  const location = useLocation();
+
+  // Efecto para colapsar el sidebar automáticamente cuando la pantalla es pequeña (< 768px)
+  useEffect(function() {
+    function manejarTamaño() {
+      if (window.innerWidth < 768) {
+        setOpen(false); // Colapsa
+      } else {
+        setOpen(true);  // Expande
+      }
+    }
+
+    // Escuchar el evento de cambio de tamaño de pantalla
+    window.addEventListener('resize', manejarTamaño);
+    
+    // Ejecutarlo al cargar la página por primera vez
+    manejarTamaño();
+
+    // Limpiar el evento cuando el componente se desmonte
+    return function() {
+      window.removeEventListener('resize', manejarTamaño);
+    };
+  }, []);
 
   return (
     <nav className={`
