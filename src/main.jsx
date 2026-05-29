@@ -7,6 +7,7 @@ import UsuariosPage from './pages/usuarioPage.jsx';
 import RegistroUsuarioPage from './pages/registroUsuarioPage.jsx';
 import InventarioPage from './pages/inventarioPage.jsx';
 import EntradasPage from './pages/entradasPage.jsx';
+import SalidasPage from './pages/salidasPage.jsx';
 import RegistroProducto from '../components/Inventario/RegistroProducto.jsx';
 
 createRoot(document.getElementById('root')).render(
@@ -21,6 +22,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="/Inventarios/nuevo" element={<RegistroProducto />} />
             <Route path="/Inventarios/editar/:id" element={<RegistroProducto />} />
             <Route path="/Entradas" element={<EntradasPage />} />
+            <Route path="/Salidas" element={<SalidasPage />} />
             <Route path="/Dashboard" element={<div>3</div>} />
             <Route path="/Historial De Movimientos" element={<div>4</div>} />
 

@@ -16,6 +16,7 @@ const menuItems = [
   { icon: Home, label: 'Inicio', path: '/Inicio' },
   { icon: Package, label: 'Inventarios', path: '/Inventarios' },
   { icon: Package, label: 'Entradas Inventarios', path: '/Entradas' },
+  { icon: Package, label: 'Salidas Inventario', path: '/Salidas' },
   { icon: LayoutDashboard, label: 'Dashboard', path: '/Dashboard' },
   { icon: History, label: 'Historial de Movimientos', path: '/Historial de Movimientos' },
   { icon: Settings, label: 'Gestión de Usuarios', path: '/Usuarios' }
