@@ -14,12 +14,12 @@ import {
 
 const menuItems = [
   { icon: Home, label: 'Inicio', path: '/Inicio' },
-  { icon: Package, label: 'Inventarios', path: '/Inventarios' },
-  { icon: Package, label: 'Entradas Inventarios', path: '/Entradas' },
-  { icon: Package, label: 'Salidas Inventario', path: '/Salidas' },
   { icon: LayoutDashboard, label: 'Dashboard', path: '/Dashboard' },
-  { icon: History, label: 'Historial de Movimientos', path: '/Historial de Movimientos' },
-  { icon: Settings, label: 'Gestión de Usuarios', path: '/Usuarios' }
+  { icon: Package, label: 'Entradas', path: '/Entradas' },
+  { icon: Package, label: 'Salidas', path: '/Salidas' },
+  { icon: Package, label: 'Productos', path: '/Inventarios' },
+  { icon: History, label: 'Inventario', path: '/Historial De Movimientos' },
+  { icon: Settings, label: 'Gestión de Usuarios', path: '/usuarios' }
 ];
 
 export default function Sidebar() {
@@ -50,7 +50,7 @@ export default function Sidebar() {
 
   return (
     <nav className={`
-      h-screen bg-blue-50 border-r border-slate-200/80 p-4 
+      fixed top-0 left-0 z-40 h-screen bg-blue-50 border-r border-slate-200/80 p-4 
       flex flex-col justify-between duration-300 ease-in-out shadow-xs select-none
       ${open ? 'w-64' : 'w-20'}
     `}>

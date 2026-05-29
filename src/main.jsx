@@ -9,22 +9,25 @@ import InventarioPage from './pages/inventarioPage.jsx';
 import EntradasPage from './pages/entradasPage.jsx';
 import SalidasPage from './pages/salidasPage.jsx';
 import RegistroProducto from '../components/Inventario/RegistroProducto.jsx';
+import InicioPage from './pages/inicioPage.jsx';
+import DashboardPage from './pages/dashboardPage.jsx';
+import InventarioResumenPage from './pages/inventarioResumenPage.jsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <div className="flex min-h-screen bg-slate-50">
         <Sidebar />
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-6 ml-20 md:ml-64">
           <Routes>
-            <Route path="/Inicio" element={<div>1</div>} />
+            <Route path="/Inicio" element={<InicioPage />} />
             <Route path="/Inventarios" element={<InventarioPage />} />
             <Route path="/Inventarios/nuevo" element={<RegistroProducto />} />
             <Route path="/Inventarios/editar/:id" element={<RegistroProducto />} />
             <Route path="/Entradas" element={<EntradasPage />} />
             <Route path="/Salidas" element={<SalidasPage />} />
-            <Route path="/Dashboard" element={<div>3</div>} />
-            <Route path="/Historial De Movimientos" element={<div>4</div>} />
+            <Route path="/Dashboard" element={<DashboardPage />} />
+            <Route path="/Historial De Movimientos" element={<InventarioResumenPage />} />
 
             <Route path="/" element={<Navigate to="/usuarios" replace />} />
             <Route path="/usuarios" element={<UsuariosPage />} />
