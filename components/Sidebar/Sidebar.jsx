@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-// Importamos Link y useLocation desde react-router-dom
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../src/context/AuthContext';
 import { 
   Home, 
   Package, 
@@ -9,7 +9,8 @@ import {
   History, 
   Menu, 
   Boxes,
-  UserCircle 
+  UserCircle,
+  LogOut
 } from 'lucide-react';
 
 const menuItems = [
@@ -17,36 +18,14 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/Dashboard' },
   { icon: Package, label: 'Entradas', path: '/Entradas' },
   { icon: Package, label: 'Salidas', path: '/Salidas' },
-  { icon: Package, label: 'Productos', path: '/Inventarios' },
-  { icon: History, label: 'Inventario', path: '/Historial De Movimientos' },
+  { icon: Package, label: 'Inventarios', path: '/Inventarios' },
+  { icon: History, label: 'Reportes', path: '/Historial De Movimientos' },
   { icon: Settings, label: 'Gestión de Usuarios', path: '/usuarios' }
 ];
 
-export default function Sidebar() {
-  const [open, setOpen] = useState(true);
+export default function Sidebar({ open, setOpen }) {
   const location = useLocation();
-
-  // Efecto para colapsar el sidebar automáticamente cuando la pantalla es pequeña (< 768px)
-  useEffect(function() {
-    function manejarTamaño() {
-      if (window.innerWidth < 768) {
-        setOpen(false); // Colapsa
-      } else {
-        setOpen(true);  // Expande
-      }
-    }
-
-    // Escuchar el evento de cambio de tamaño de pantalla
-    window.addEventListener('resize', manejarTamaño);
-    
-    // Ejecutarlo al cargar la página por primera vez
-    manejarTamaño();
-
-    // Limpiar el evento cuando el componente se desmonte
-    return function() {
-      window.removeEventListener('resize', manejarTamaño);
-    };
-  }, []);
+  const { user, logout } = useAuth();
 
   return (
     <nav className={`
@@ -62,7 +41,7 @@ export default function Sidebar() {
               <Boxes className="w-6 h-6" />
             </div>
             <span className={`text-xs font-bold text-slate-800 tracking-wider whitespace-nowrap transition-opacity duration-200 ${open ? 'opacity-100' : 'opacity-0 w-0'}`}>
-              INVENTARIOS
+              ESTRUCASA
             </span>
           </div>
           
@@ -119,18 +98,41 @@ export default function Sidebar() {
         </ul>
       </div>
 
-      {/* Footer: Perfil de Usuario */}
-      <div className="flex items-center gap-3 p-2 bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
-        <UserCircle className="w-9 h-9 text-slate-400 shrink-0" />
-        <div className={`
-          grid transition-all duration-300 ease-in-out min-w-0
-          ${open ? 'grid-cols-[1fr] opacity-100' : 'grid-cols-[0fr] opacity-0'}
-        `}>
-          <div className="overflow-hidden whitespace-nowrap">
-            <p className="text-sm font-semibold text-slate-700 truncate">TIPO DE USUARIO </p>
-            <p className="text-xs text-slate-400 truncate">USUARIO</p>
+      {/* Footer: Perfil de Usuario Premium con Botón de Logout */}
+      <div className="flex flex-col gap-2 p-2 bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-xs">
+        {open ? (
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <UserCircle className="w-9 h-9 text-slate-400 shrink-0" />
+              <div className="overflow-hidden whitespace-nowrap">
+                <p className="text-xs font-bold text-slate-800 truncate" title={user?.nombre}>
+                  {user?.nombre || 'Invitado'}
+                </p>
+                <p className="text-[10px] text-slate-500 font-medium truncate">
+                  {user?.rol || 'Usuario'} {user?.usuario ? `@${user.usuario}` : ''}
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={logout} 
+              title="Cerrar sesión"
+              className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 active:scale-95 transition-all cursor-pointer shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2.5">
+            <UserCircle className="w-9 h-9 text-slate-400" title={`${user?.nombre || 'Invitado'} (${user?.rol || 'Usuario'})`} />
+            <button 
+              onClick={logout} 
+              title="Cerrar sesión"
+              className="p-2 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-600 active:scale-95 transition-all cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
 
     </nav>

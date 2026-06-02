@@ -10,7 +10,7 @@ const usuariosMock = [
     usuario: "jperez",
     rol: "Administrador",
     estado: "Activo",
-    contrasena: "123456"
+    contraseña: "123456"
   },
   {
     id: 2,
@@ -18,7 +18,7 @@ const usuariosMock = [
     usuario: "atorres",
     rol: "Supervisor",
     estado: "Activo",
-    contrasena: "123456"
+    contraseña: "123456"
   },
   {
     id: 3,
@@ -26,7 +26,7 @@ const usuariosMock = [
     usuario: "lramos",
     rol: "Operario",
     estado: "Inactivo",
-    contrasena: "123456"
+    contraseña: "123456"
   }
 ];
 
