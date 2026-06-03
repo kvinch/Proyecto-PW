@@ -37,6 +37,7 @@ export default function UsuariosTable({ usuarios, onEdit, onDelete, onToggleStat
           </thead>
           <tbody className="divide-y divide-slate-100 text-sm">
             {usuarios.length > 0 ? (
+              
               usuarios.map((usr) => (
                 <tr key={usr.id} className="hover:bg-slate-50/50 transition-colors group">
 

@@ -1,17 +1,10 @@
-
-import React, { useEffect, useState } from "react";
-import { Plus, ArrowDownCircle } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Plus, ArrowDownCircle, Boxes, AlertTriangle } from "lucide-react";
 import TablaEntradas from "./TablaEntradas";
 
-
-
-
 function Entradas() {
-
   const [productos, setProductos] = useState([]);
-
   const [entradas, setEntradas] = useState([]);
-
   const [formData, setFormData] = useState({
     producto: "",
     cantidad: "",
@@ -21,51 +14,26 @@ function Entradas() {
     observacion: ""
   });
 
-  // Cargar productos del inventario
+  useEffect(function () {
+    const inventarioGuardado = localStorage.getItem("inventario_app");
+    if (inventarioGuardado != null) {
+      setProductos(JSON.parse(inventarioGuardado));
+    }
 
-useEffect(function () {
+    const entradasGuardadas = localStorage.getItem("entradas_app");
+    if (entradasGuardadas != null) {
+      setEntradas(JSON.parse(entradasGuardadas));
+    }
+  }, []);
 
-  // Cargar productos
-  const inventarioGuardado =
-    localStorage.getItem("inventario_app");
-
-  if (inventarioGuardado != null) {
-
-    setProductos(
-      JSON.parse(inventarioGuardado)
-    );
-
-  }
-
-  // Cargar historial de entradas
-  const entradasGuardadas =
-    localStorage.getItem("entradas_app");
-
-  if (entradasGuardadas != null) {
-
-    setEntradas(
-      JSON.parse(entradasGuardadas)
-    );
-
-  }
-
-}, []);
-
-
-
-  // Manejar cambios
   function handleChange(e) {
-
     setFormData({
       ...formData,
       [e.target.name]: e.currentTarget.value
     });
-
   }
 
-  // Registrar entrada
   function registrarEntrada(e) {
-
     e.preventDefault();
 
     if (
@@ -75,78 +43,50 @@ useEffect(function () {
       formData.responsable === "" ||
       formData.fecha === ""
     ) {
-
       alert("Completa todos los campos.");
       return;
-
     }
 
     const nuevaEntrada = {
       id: Date.now(),
-      ...formData
+      ...formData,
+      cantidad: Number(formData.cantidad)
     };
 
-    const entradasGuardadas =
-      localStorage.getItem("entradas_app");
-
+    const entradasGuardadas = localStorage.getItem("entradas_app");
     let listaEntradas = [];
 
     if (entradasGuardadas != null) {
-
-      listaEntradas =
-        JSON.parse(entradasGuardadas);
-
+      listaEntradas = JSON.parse(entradasGuardadas);
     }
 
     listaEntradas.push(nuevaEntrada);
 
+    const inventarioGuardado = localStorage.getItem("inventario_app");
 
-// RF-16: Actualización automática del stock
+    if (inventarioGuardado != null) {
+      let inventario = JSON.parse(inventarioGuardado);
 
-const inventarioGuardado =
-  localStorage.getItem("inventario_app");
+      inventario = inventario.map(function (producto) {
+        if (producto.nombre === formData.producto) {
+          return {
+            ...producto,
+            stock: Number(producto.stock) + Number(formData.cantidad)
+          };
+        }
 
-if (inventarioGuardado != null) {
+        return producto;
+      });
 
-  let inventario =
-    JSON.parse(inventarioGuardado);
-
-  inventario = inventario.map(function(producto) {
-
-    if (producto.nombre === formData.producto) {
-
-      return {
-        ...producto,
-        stock:
-          Number(producto.stock) +
-          Number(formData.cantidad)
-      };
-
+      localStorage.setItem("inventario_app", JSON.stringify(inventario));
+      setProductos(inventario);
     }
 
-    return producto;
-
-  });
-
-  localStorage.setItem(
-    "inventario_app",
-    JSON.stringify(inventario)
-  );
-
-}
-
-
-
-    localStorage.setItem(
-      "entradas_app",
-      JSON.stringify(listaEntradas)
-    );
-
+    localStorage.setItem("entradas_app", JSON.stringify(listaEntradas));
     setEntradas(listaEntradas);
 
     alert("Entrada registrada correctamente.");
 
-    // Limpiar formulario
     setFormData({
       producto: "",
       cantidad: "",
@@ -155,189 +95,139 @@ if (inventarioGuardado != null) {
       fecha: "",
       observacion: ""
     });
-
   }
 
+  const totalCantidadEntradas = useMemo(function () {
+    return entradas.reduce(function (acc, entrada) {
+      return acc + Number(entrada.cantidad || 0);
+    }, 0);
+  }, [entradas]);
+
+  const totalCriticos = useMemo(function () {
+    return productos.filter(function (producto) {
+      return Number(producto.stock || 0) <= Number(producto.stockMinimo || 0);
+    }).length;
+  }, [productos]);
+
   return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-5 bg-slate-50 border-b border-slate-200/60">
+          <ArrowDownCircle className="w-5 h-5 text-emerald-600" />
+          <h1 className="font-bold text-xl text-slate-800">Registro de Entradas</h1>
+        </div>
 
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4 border-b border-slate-200/60 bg-slate-50/50">
+          <article className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">Movimientos</p>
+            <p className="mt-1 text-2xl font-bold text-slate-800">{entradas.length}</p>
+          </article>
 
-      {/* Cabecera */}
+          <article className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">Unidades Ingresadas</p>
+            <p className="mt-1 text-2xl font-bold text-slate-800">{totalCantidadEntradas}</p>
+          </article>
 
-      <div className="flex items-center gap-3 px-6 py-5 bg-slate-50 border-b border-slate-200/60">
+          <article className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">Stock Crítico</p>
+              {totalCriticos > 0 ? <AlertTriangle className="w-4 h-4 text-rose-500" /> : <Boxes className="w-4 h-4 text-emerald-500" />}
+            </div>
+            <p className="mt-1 text-2xl font-bold text-slate-800">{totalCriticos}</p>
+          </article>
+        </div>
 
-        <ArrowDownCircle className="w-5 h-5 text-emerald-600" />
+        <form onSubmit={registrarEntrada} className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Producto</label>
+            <select
+              name="producto"
+              value={formData.producto}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm outline-none focus:border-emerald-500 focus:bg-white transition-all"
+            >
+              <option value="">Seleccionar producto</option>
+              {productos.map(function (producto) {
+                return (
+                  <option key={producto.id} value={producto.nombre}>
+                    {producto.nombre} (stock: {producto.stock})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
 
-        <h1 className="font-bold text-xl text-slate-800">
-          Registro de Entradas
-        </h1>
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Cantidad</label>
+            <input
+              type="number"
+              min="1"
+              name="cantidad"
+              value={formData.cantidad}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm outline-none focus:border-emerald-500 focus:bg-white transition-all"
+            />
+          </div>
 
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Proveedor</label>
+            <input
+              type="text"
+              name="proveedor"
+              value={formData.proveedor}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm outline-none focus:border-emerald-500 focus:bg-white transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Responsable</label>
+            <input
+              type="text"
+              name="responsable"
+              value={formData.responsable}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm outline-none focus:border-emerald-500 focus:bg-white transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Fecha</label>
+            <input
+              type="date"
+              name="fecha"
+              value={formData.fecha}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm outline-none focus:border-emerald-500 focus:bg-white transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Observación</label>
+            <input
+              type="text"
+              name="observacion"
+              value={formData.observacion}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm outline-none focus:border-emerald-500 focus:bg-white transition-all"
+            />
+          </div>
+
+          <div className="md:col-span-2 flex justify-end">
+            <button
+              type="submit"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 font-semibold shadow-md hover:shadow-emerald-500/20 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              Registrar Entrada
+            </button>
+          </div>
+        </form>
       </div>
 
-      {/* Formulario */}
-
-      <form
-        onSubmit={registrarEntrada}
-        className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5"
-      >
-
-        {/* Producto */}
-
-        <div>
-
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-            Producto
-          </label>
-
-          <select
-            name="producto"
-            value={formData.producto}
-            onChange={handleChange}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200"
-          >
-
-            <option value="">
-              Seleccionar producto
-            </option>
-
-            {productos.map(function(producto) {
-
-              return (
-                <option
-                  key={producto.id}
-                  value={producto.nombre}
-                >
-                  {producto.nombre}
-                </option>
-              );
-
-            })}
-
-          </select>
-
-        </div>
-
-        {/* Cantidad */}
-
-        <div>
-
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-            Cantidad
-          </label>
-
-          <input
-            type="number"
-            name="cantidad"
-            value={formData.cantidad}
-            onChange={handleChange}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200"
-          />
-
-        </div>
-
-        {/* Proveedor */}
-
-        <div>
-
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-            Proveedor
-          </label>
-
-          <input
-            type="text"
-            name="proveedor"
-            value={formData.proveedor}
-            onChange={handleChange}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200"
-          />
-
-        </div>
-
-        {/* Responsable */}
-
-        <div>
-
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-            Responsable
-          </label>
-
-          <input
-            type="text"
-            name="responsable"
-            value={formData.responsable}
-            onChange={handleChange}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200"
-          />
-
-        </div>
-
-        {/* Fecha */}
-
-        <div>
-
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-            Fecha
-          </label>
-
-          <input
-            type="date"
-            name="fecha"
-            value={formData.fecha}
-            onChange={handleChange}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200"
-          />
-
-        </div>
-
-        {/* Observación */}
-
-        <div>
-
-          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-            Observación
-          </label>
-
-          <input
-            type="text"
-            name="observacion"
-            value={formData.observacion}
-            onChange={handleChange}
-            className="w-full px-4 py-2.5 rounded-xl border border-slate-200"
-          />
-
-        </div>
-
-        {/* Botón */}
-
-        <div className="md:col-span-2 flex justify-end">
-
-          <button
-            type="submit"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-          >
-
-            <Plus className="w-4 h-4" />
-
-            Registrar Entrada
-
-          </button>
-
-        </div>
-
-      </form>
-
-
-    <TablaEntradas entradas={entradas} />
-
-
-
-
-
+      <TablaEntradas entradas={entradas} />
     </div>
-
   );
-
 }
 
 export default Entradas;
-
