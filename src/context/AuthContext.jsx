@@ -14,7 +14,7 @@ const routeSections = [
   { section: 'entradas', match: (path) => path === '/Entradas' },
   { section: 'salidas', match: (path) => path === '/Salidas' },
   { section: 'inventarios', match: (path) => path.startsWith('/Inventarios') },
-  { section: 'reportes', match: (path) => path === '/Historial De Movimientos' },
+  { section: 'reportes', match: (path) => path === '/Historial-De-Movimientos' },
   { section: 'usuarios', match: (path) => path.startsWith('/usuarios') }
 ];
 

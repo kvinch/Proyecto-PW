@@ -19,7 +19,7 @@ const menuItems = [
   { icon: Package, label: 'Entradas', path: '/Entradas' },
   { icon: Package, label: 'Salidas', path: '/Salidas' },
   { icon: Package, label: 'Inventarios', path: '/Inventarios' },
-  { icon: History, label: 'Reportes', path: '/Historial De Movimientos' },
+  { icon: History, label: 'Reportes', path: '/Historial-De-Movimientos' },
   { icon: Settings, label: 'Gestión de Usuarios', path: '/usuarios' }
 ];
 
