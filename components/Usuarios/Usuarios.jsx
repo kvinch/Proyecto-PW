@@ -25,7 +25,7 @@ const usuariosMock = [
     nombre: "Luis Ramos",
     usuario: "lramos",
     rol: "Operario",
-    estado: "Inactivo",
+    estado: "Activo",
     contraseña: "123456"
   }
 ];

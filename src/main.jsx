@@ -2,7 +2,7 @@ import { StrictMode, useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import Sidebar from '../components/Sidebar/Sidebar.jsx';
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import UsuariosPage from './pages/usuarioPage.jsx';
 import RegistroUsuarioPage from './pages/registroUsuarioPage.jsx';
 import InventarioPage from './pages/inventarioPage.jsx';
@@ -13,12 +13,13 @@ import InicioPage from './pages/inicioPage.jsx';
 import DashboardPage from './pages/dashboardPage.jsx';
 import InventarioResumenPage from './pages/inventarioResumenPage.jsx';
 import LoginPage from './pages/loginPage.jsx';
-import { AuthProvider, useAuth } from './context/AuthContext.jsx';
+import { AuthProvider, canAccessPath, getDefaultPathForRole, useAuth } from './context/AuthContext.jsx';
 
 // Componente para proteger las rutas privadas y manejar el layout responsivo
 function ProtectedRouteLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, syncUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const location = useLocation();
 
   // Manejar colapso automático del sidebar según el tamaño de la pantalla
   useEffect(() => {
@@ -34,6 +35,10 @@ function ProtectedRouteLayout() {
     return () => window.removeEventListener('resize', manejarTamaño);
   }, []);
 
+  useEffect(() => {
+    syncUser();
+  }, [location.pathname]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -44,6 +49,10 @@ function ProtectedRouteLayout() {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!canAccessPath(user.rol, location.pathname)) {
+    return <Navigate to={getDefaultPathForRole(user.rol)} replace />;
   }
 
   return (
@@ -69,7 +78,7 @@ function PublicRoute({ children }) {
   }
 
   if (user) {
-    return <Navigate to="/Inicio" replace />;
+    return <Navigate to={getDefaultPathForRole(user.rol)} replace />;
   }
 
   return children;

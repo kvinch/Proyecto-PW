@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../src/context/AuthContext';
+import { canAccessPath, useAuth } from '../../src/context/AuthContext';
 import { 
   Home, 
   Package, 
@@ -26,6 +26,7 @@ const menuItems = [
 export default function Sidebar({ open, setOpen }) {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const visibleMenuItems = menuItems.filter((item) => canAccessPath(user?.rol, item.path));
 
   return (
     <nav className={`
@@ -54,7 +55,7 @@ export default function Sidebar({ open, setOpen }) {
         </div>
 
         <ul className="space-y-1">
-          {menuItems.map((item, index) => {
+          {visibleMenuItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
 

@@ -45,7 +45,7 @@ function InventarioResumen() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-slate-400 font-bold">Vista General</p>
-            <h1 className="mt-2 text-3xl font-extrabold text-slate-800 tracking-tight">Inventario</h1>
+            <h1 className="mt-2 text-3xl font-extrabold text-slate-800 tracking-tight">Reportes</h1>
             <p className="mt-2 text-slate-500">Consulta el stock actual de todos los productos registrados.</p>
           </div>
 
