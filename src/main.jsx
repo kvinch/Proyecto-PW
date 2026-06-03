@@ -108,7 +108,7 @@ createRoot(document.getElementById('root')).render(
             <Route path="/Entradas" element={<EntradasPage />} />
             <Route path="/Salidas" element={<SalidasPage />} />
             <Route path="/Dashboard" element={<DashboardPage />} />
-            <Route path="/Historial De Movimientos" element={<InventarioResumenPage />} />
+            <Route path="/Historial-De-Movimientos" element={<InventarioResumenPage />} />
 
             <Route path="/usuarios" element={<UsuariosPage />} />
             <Route path="/usuarios/nuevo" element={<RegistroUsuarioPage />} />
