@@ -13,6 +13,12 @@ function Entradas() {
     fecha: "",
     observacion: ""
   });
+  const [modal, setModal] = useState({
+    visible: false,
+    titulo: "",
+    mensaje: "",
+    tipo: ""
+  });
 
   useEffect(function () {
     const inventarioGuardado = localStorage.getItem("inventario_app");
@@ -43,7 +49,12 @@ function Entradas() {
       formData.responsable === "" ||
       formData.fecha === ""
     ) {
-      alert("Completa todos los campos.");
+      setModal({
+        visible: true,
+        titulo: "Campos incompletos",
+        mensaje: "Completa todos los campos obligatorios.",
+        tipo: "error"
+      });
       return;
     }
 
@@ -85,7 +96,12 @@ function Entradas() {
     localStorage.setItem("entradas_app", JSON.stringify(listaEntradas));
     setEntradas(listaEntradas);
 
-    alert("Entrada registrada correctamente.");
+    setModal({
+      visible: true,
+      titulo: "Registro exitoso",
+      mensaje: "La entrada fue registrada correctamente.",
+      tipo: "success"
+    });
 
     setFormData({
       producto: "",
@@ -226,6 +242,54 @@ function Entradas() {
       </div>
 
       <TablaEntradas entradas={entradas} />
+
+      {
+        modal.visible && (
+
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+
+            <div className="bg-white rounded-2xl shadow-xl w-100 p-6">
+
+              <h2
+                className={`text-xl font-bold mb-3 ${modal.tipo === "success"
+                    ? "text-emerald-600"
+                    : "text-red-600"
+                  }`}
+              >
+                {modal.titulo}
+              </h2>
+
+              <p className="text-slate-600 mb-6">
+                {modal.mensaje}
+              </p>
+
+              <div className="flex justify-end">
+
+                <button
+                  onClick={function () {
+
+                    setModal({
+                      visible: false,
+                      titulo: "",
+                      mensaje: "",
+                      tipo: ""
+                    });
+
+                  }}
+                  className="px-5 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Aceptar
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        )
+      }
+
     </div>
   );
 }

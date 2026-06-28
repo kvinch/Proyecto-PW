@@ -67,8 +67,10 @@ function TablaEntradas(props) {
             <tr>
               <th className="px-6 py-3 text-left">Producto</th>
               <th className="px-6 py-3 text-left">Cantidad</th>
+              <th className="px-6 py-3 text-left">Proveedor</th>
               <th className="px-6 py-3 text-left">Responsable</th>
               <th className="px-6 py-3 text-left">Fecha</th>
+              <th className="px-6 py-3 text-left">Observación</th>
             </tr>
           </thead>
 
@@ -83,14 +85,16 @@ function TablaEntradas(props) {
                         +{entrada.cantidad}
                       </span>
                     </td>
+                    <td className="px-6 py-3.5 text-slate-600">{entrada.proveedor}</td>
                     <td className="px-6 py-3.5 text-slate-600">{entrada.responsable}</td>
                     <td className="px-6 py-3.5 text-slate-500">{entrada.fecha}</td>
+                    <td className="px-6 py-3.5 text-slate-600">{entrada.observacion || "-"}</td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                <td colSpan="4" className="px-6 py-10 text-center text-slate-400">
+                <td colSpan="6" className="px-6 py-10 text-center text-slate-400">
                   No hay entradas que coincidan con los filtros.
                 </td>
               </tr>
