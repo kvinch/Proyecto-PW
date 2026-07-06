@@ -1,9 +1,9 @@
-import React from 'react';
 import { Trash2, Edit2, Package } from 'lucide-react';
+import { esCritico, isStockEnRiesgo } from '../../src/utils/inventario';
 
-function ItemProducto(producto) {
+// B3: Props desestructuradas para claridad semántica
+function ItemProducto({ num, nombre, categoria, stock, stockMinimo, unidad, onEdit, onDelete }) {
 
-  // Extrae el color del badge de categoría con un switch
   function getCategoriaBadge(categoria) {
     switch (categoria) {
       case 'Redes':
@@ -19,24 +19,23 @@ function ItemProducto(producto) {
     }
   }
 
-  // RF-13: determina el nivel de stock
-  const esCritico = producto.stock <= producto.stockMinimo;
-  const enRiesgo = !esCritico && producto.stock <= producto.stockMinimo * 1.5;
+  // M2: Usa funciones centralizadas de src/utils/inventario.js
+  const productoData = { stock, stockMinimo };
+  const critico = esCritico(productoData);
+  const enRiesgo = isStockEnRiesgo(productoData);
 
   // Calcula el porcentaje de la barra (el tope es 2x el stock mínimo = barra llena)
-  const max = producto.stockMinimo > 0 ? producto.stockMinimo * 2 : 10;
-  const porcentaje = Math.min(Math.round((producto.stock / max) * 100), 100);
+  const max = stockMinimo > 0 ? stockMinimo * 2 : 10;
+  const porcentaje = Math.min(Math.round((stock / max) * 100), 100);
 
-  // Color de la barra según nivel de stock
   function getBarColor() {
-    if (esCritico) return 'bg-rose-500';
+    if (critico) return 'bg-rose-500';
     if (enRiesgo)  return 'bg-amber-400';
     return 'bg-emerald-500';
   }
 
-  // Etiqueta y color de texto según nivel de stock
   function getEtiqueta() {
-    if (esCritico) return { texto: 'CRÍTICO',   color: 'text-rose-600' };
+    if (critico) return { texto: 'CRÍTICO',   color: 'text-rose-600' };
     if (enRiesgo)  return { texto: 'EN RIESGO', color: 'text-amber-600' };
     return             { texto: 'NORMAL',     color: 'text-emerald-600' };
   }
@@ -48,7 +47,7 @@ function ItemProducto(producto) {
 
       {/* Número de índice */}
       <td className="px-6 py-4 font-medium text-slate-400">
-        {producto.num}
+        {num}
       </td>
 
       {/* Nombre del producto con ícono */}
@@ -58,27 +57,26 @@ function ItemProducto(producto) {
             <Package className="w-4 h-4" />
           </div>
           <div>
-            <div className="font-semibold text-slate-800">{producto.nombre}</div>
+            <div className="font-semibold text-slate-800">{nombre}</div>
           </div>
         </div>
       </td>
 
       {/* Categoría con badge de color */}
       <td className="px-6 py-4">
-        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${getCategoriaBadge(producto.categoria)}`}>
-          {producto.categoria}
+        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${getCategoriaBadge(categoria)}`}>
+          {categoria}
         </span>
       </td>
 
       {/* Unidad */}
       <td className="px-6 py-4 text-slate-600 capitalize">
-        {producto.unidad}
+        {unidad}
       </td>
 
-      {/* RF-13: Barra visual de stock (reemplaza Stock Actual + Stock Mínimo + Estado) */}
+      {/* RF-13: Barra visual de stock */}
       <td className="px-6 py-4">
         <div className="min-w-[140px]">
-          {/* Fila: barra de progreso + número actual */}
           <div className="flex items-center gap-2 mb-1">
             <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
               <div
@@ -87,12 +85,11 @@ function ItemProducto(producto) {
               />
             </div>
             <span className="text-sm font-bold text-slate-800 shrink-0 tabular-nums">
-              {producto.stock}
+              {stock}
             </span>
           </div>
-          {/* Fila: stock mínimo · etiqueta de estado */}
           <p className="text-xs text-slate-400">
-            min: <span className="font-medium text-slate-500">{producto.stockMinimo}</span>
+            min: <span className="font-medium text-slate-500">{stockMinimo}</span>
             {' · '}
             <span className={`font-semibold ${etiqueta.color}`}>{etiqueta.texto}</span>
           </p>
@@ -102,18 +99,18 @@ function ItemProducto(producto) {
       {/* Acciones: Editar y Eliminar */}
       <td className="px-6 py-4 text-right">
         <div className="flex items-center justify-end gap-2">
-          {/* Botón de Editar */}
           <button
-            onClick={producto.onEdit}
+            type="button"
+            onClick={onEdit}
             title="Editar producto"
             className="p-2 rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600 active:scale-95 transition-all cursor-pointer"
           >
             <Edit2 className="w-4 h-4" />
           </button>
 
-          {/* Botón de Eliminar */}
           <button
-            onClick={producto.onDelete}
+            type="button"
+            onClick={onDelete}
             title="Eliminar producto"
             className="p-2 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all cursor-pointer"
           >

@@ -1,4 +1,4 @@
-import { StrictMode, useState, useEffect } from 'react';
+import { StrictMode, useState, useEffect, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import Sidebar from '../components/Sidebar/Sidebar.jsx';
@@ -14,12 +14,14 @@ import DashboardPage from './pages/dashboardPage.jsx';
 import InventarioResumenPage from './pages/inventarioResumenPage.jsx';
 import LoginPage from './pages/loginPage.jsx';
 import { AuthProvider, canAccessPath, getDefaultPathForRole, useAuth } from './context/AuthContext.jsx';
+import { InventarioProvider } from './context/InventarioContext.jsx';
 
 // Componente para proteger las rutas privadas y manejar el layout responsivo
 function ProtectedRouteLayout() {
   const { user, loading, syncUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const location = useLocation();
+  const prevPathRef = useRef(location.pathname);
 
   // Manejar colapso automático del sidebar según el tamaño de la pantalla
   useEffect(() => {
@@ -35,8 +37,12 @@ function ProtectedRouteLayout() {
     return () => window.removeEventListener('resize', manejarTamaño);
   }, []);
 
+  // Adicional: solo ejecutar syncUser cuando la ruta realmente cambia, no en cada render
   useEffect(() => {
-    syncUser();
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname;
+      syncUser();
+    }
   }, [location.pathname]);
 
   if (loading) {
@@ -88,39 +94,41 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* Ruta Pública (Login) */}
-          <Route 
-            path="/login" 
-            element={
-              <PublicRoute>
-                <LoginPage />
-              </PublicRoute>
-            } 
-          />
+        <InventarioProvider>
+          <Routes>
+            {/* Ruta Pública (Login) */}
+            <Route 
+              path="/login" 
+              element={
+                <PublicRoute>
+                  <LoginPage />
+                </PublicRoute>
+              } 
+            />
 
-          {/* Rutas Privadas / Protegidas */}
-          <Route element={<ProtectedRouteLayout />}>
-            <Route path="/Inicio" element={<InicioPage />} />
-            <Route path="/Inventarios" element={<InventarioPage />} />
-            <Route path="/Inventarios/nuevo" element={<RegistroProducto />} />
-            <Route path="/Inventarios/editar/:id" element={<RegistroProducto />} />
-            <Route path="/Entradas" element={<EntradasPage />} />
-            <Route path="/Salidas" element={<SalidasPage />} />
-            <Route path="/Dashboard" element={<DashboardPage />} />
-            <Route path="/Historial-De-Movimientos" element={<InventarioResumenPage />} />
+            {/* Rutas Privadas / Protegidas */}
+            <Route element={<ProtectedRouteLayout />}>
+              <Route path="/Inicio" element={<InicioPage />} />
+              <Route path="/Inventarios" element={<InventarioPage />} />
+              <Route path="/Inventarios/nuevo" element={<RegistroProducto />} />
+              <Route path="/Inventarios/editar/:id" element={<RegistroProducto />} />
+              <Route path="/Entradas" element={<EntradasPage />} />
+              <Route path="/Salidas" element={<SalidasPage />} />
+              <Route path="/Dashboard" element={<DashboardPage />} />
+              <Route path="/Historial-De-Movimientos" element={<InventarioResumenPage />} />
 
-            <Route path="/usuarios" element={<UsuariosPage />} />
-            <Route path="/usuarios/nuevo" element={<RegistroUsuarioPage />} />
-            <Route path="/usuarios/editar/:id" element={<RegistroUsuarioPage />} />
+              <Route path="/usuarios" element={<UsuariosPage />} />
+              <Route path="/usuarios/nuevo" element={<RegistroUsuarioPage />} />
+              <Route path="/usuarios/editar/:id" element={<RegistroUsuarioPage />} />
 
-            {/* Redirección por defecto */}
-            <Route path="/" element={<Navigate to="/Inicio" replace />} />
-          </Route>
+              {/* Redirección por defecto */}
+              <Route path="/" element={<Navigate to="/Inicio" replace />} />
+            </Route>
 
-          {/* Redirección para cualquier otra URL no válida */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+            {/* Redirección para cualquier otra URL no válida */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </InventarioProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>

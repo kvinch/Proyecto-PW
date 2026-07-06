@@ -1,8 +1,12 @@
+import { useEffect } from 'react';
 import Login from '../../components/Login/Login.jsx';
 
-function loginPage() {
-    return (
-        <Login />
-    )
+function LoginPage() {
+  useEffect(function () { document.title = 'Iniciar Sesión — Estrucasa'; }, []);
+
+  return (
+    <Login />
+  );
 }
-export default loginPage
+
+export default LoginPage;

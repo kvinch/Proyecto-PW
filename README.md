@@ -177,3 +177,13 @@ Proyecto universitario orientado a la administración y control de inventarios. 
 * Revisión visual de diseño entre módulos.
 * Pruebas de navegación.
 
+---
+
+## Limitaciones de Seguridad (Proyecto Académico)
+
+> Este proyecto es exclusivamente frontend y no cuenta con backend ni base de datos real. Las siguientes limitaciones son conocidas y aceptadas en el contexto académico:
+
+* **Contraseñas en texto plano (A2):** Las contraseñas de los usuarios se almacenan sin hash en `localStorage` (`usuarios_app`). No se aplica hashing del lado del cliente porque, sin un backend real, cualquier mecanismo sería igualmente vulnerable desde DevTools.
+* **Contraseñas hardcodeadas en el bundle (Adicional):** Los datos de los usuarios seed (`defaultUsers`) quedan visibles en el archivo `dist/assets/index-*.js` generado por Vite, ya que están definidos directamente en el código fuente.
+* **Control de acceso en el cliente (M4):** La restricción de rutas por rol se implementa visualmente mediante `canAccessPath()` en `AuthContext.jsx`. Sin embargo, es alterable desde las herramientas de desarrollo del navegador. Un usuario podría modificar su rol en memoria o en `localStorage` para acceder a secciones restringidas. Esto es aceptable únicamente en un proyecto sin servidor.
+* **Persistencia con `localStorage`:** Todos los datos (usuarios, inventario, entradas, salidas) se almacenan en el navegador. No hay sincronización entre dispositivos ni protección contra manipulación directa.

@@ -1,31 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Package, AlertTriangle, RefreshCw } from 'lucide-react';
-
-function leerInventario() {
-  const raw = localStorage.getItem('inventario_app');
-  if (raw == null) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    console.error('Error al leer inventario_app', error);
-    return [];
-  }
-}
+import { useInventario } from '../../src/context/InventarioContext';
+import { esCritico, contarCriticos } from '../../src/utils/inventario';
 
 function InventarioResumen() {
-  const [productos, setProductos] = useState([]);
-
-  function recargar() {
-    setProductos(leerInventario());
-  }
-
-  useEffect(function () {
-    recargar();
-  }, []);
+  // A1: Usa context compartido; B4: ya no necesita getStorageArray local
+  const { productos, refrescar } = useInventario();
 
   const totalStock = useMemo(function () {
     return productos.reduce(function (acc, producto) {
@@ -33,10 +13,9 @@ function InventarioResumen() {
     }, 0);
   }, [productos]);
 
+  // M2: Usa función centralizada
   const totalCriticos = useMemo(function () {
-    return productos.filter(function (producto) {
-      return Number(producto.stock || 0) <= Number(producto.stockMinimo || 0);
-    }).length;
+    return contarCriticos(productos);
   }, [productos]);
 
   return (
@@ -51,7 +30,7 @@ function InventarioResumen() {
 
           <button
             type="button"
-            onClick={recargar}
+            onClick={refrescar}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold text-sm transition-colors cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
@@ -94,7 +73,7 @@ function InventarioResumen() {
             <tbody className="divide-y divide-slate-100 text-sm">
               {productos.length > 0 ? (
                 productos.map(function (producto, index) {
-                  const esCritico = Number(producto.stock || 0) <= Number(producto.stockMinimo || 0);
+                  const critico = esCritico(producto);
 
                   return (
                     <tr key={producto.id || ('row-' + index)} className="hover:bg-slate-50/50 transition-colors">
@@ -111,7 +90,7 @@ function InventarioResumen() {
                       <td className="px-6 py-4 text-slate-600">{producto.unidad}</td>
                       <td className="px-6 py-4 font-semibold text-slate-800">{producto.stock}</td>
                       <td className="px-6 py-4">
-                        {esCritico ? (
+                        {critico ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
                             <AlertTriangle className="w-3.5 h-3.5" />
                             Crítico

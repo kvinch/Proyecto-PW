@@ -1,33 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Boxes, ArrowDownCircle, ArrowUpCircle, AlertTriangle, Package, TrendingUp } from 'lucide-react';
-
-function getStorageArray(key) {
-  const raw = localStorage.getItem(key);
-  if (raw == null) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    console.error('Error leyendo ' + key, error);
-    return [];
-  }
-}
+import { useInventario } from '../../src/context/InventarioContext';
+import { esCritico } from '../../src/utils/inventario';
 
 function Dashboard() {
   const navigate = useNavigate();
-  const [productos, setProductos] = useState([]);
-  const [entradas, setEntradas] = useState([]);
-  const [salidas, setSalidas] = useState([]);
-
-  useEffect(function () {
-    setProductos(getStorageArray('inventario_app'));
-    setEntradas(getStorageArray('entradas_app'));
-    setSalidas(getStorageArray('salidas_app'));
-  }, []);
+  // A1: Usa context compartido — los datos se actualizan automáticamente al cambiar desde otro módulo
+  const { productos, entradas, salidas } = useInventario();
 
   const totalStock = useMemo(function () {
     return productos.reduce(function (acc, producto) {
@@ -35,10 +15,9 @@ function Dashboard() {
     }, 0);
   }, [productos]);
 
+  // M2: Usa función centralizada de stock crítico
   const productosCriticos = useMemo(function () {
-    return productos.filter(function (producto) {
-      return Number(producto.stock || 0) <= Number(producto.stockMinimo || 0);
-    });
+    return productos.filter(esCritico);
   }, [productos]);
 
   const movimientosRecientes = useMemo(function () {
@@ -154,7 +133,7 @@ function Dashboard() {
               <tbody className="divide-y divide-slate-100 text-sm">
                 {productos.length > 0 ? (
                   productos.map(function (producto) {
-                    const critico = Number(producto.stock || 0) <= Number(producto.stockMinimo || 0);
+                    const critico = esCritico(producto);
                     return (
                       <tr key={producto.id}>
                         <td className="px-6 py-3 font-medium text-slate-700">{producto.nombre}</td>

@@ -1,10 +1,13 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, ArrowDownCircle, Boxes, AlertTriangle } from "lucide-react";
 import TablaEntradas from "./TablaEntradas";
+import { useInventario } from "../../src/context/InventarioContext";
+import { contarCriticos } from "../../src/utils/inventario";
 
 function Entradas() {
-  const [productos, setProductos] = useState([]);
-  const [entradas, setEntradas] = useState([]);
+  // A1: Usa context compartido en lugar de localStorage aislado
+  const { productos, entradas, actualizarProductos, actualizarEntradas } = useInventario();
+
   const [formData, setFormData] = useState({
     producto: "",
     cantidad: "",
@@ -13,18 +16,6 @@ function Entradas() {
     fecha: "",
     observacion: ""
   });
-
-  useEffect(function () {
-    const inventarioGuardado = localStorage.getItem("inventario_app");
-    if (inventarioGuardado != null) {
-      setProductos(JSON.parse(inventarioGuardado));
-    }
-
-    const entradasGuardadas = localStorage.getItem("entradas_app");
-    if (entradasGuardadas != null) {
-      setEntradas(JSON.parse(entradasGuardadas));
-    }
-  }, []);
 
   function handleChange(e) {
     setFormData({
@@ -48,42 +39,26 @@ function Entradas() {
     }
 
     const nuevaEntrada = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       ...formData,
       cantidad: Number(formData.cantidad)
     };
 
-    const entradasGuardadas = localStorage.getItem("entradas_app");
-    let listaEntradas = [];
+    const listaEntradas = [...entradas, nuevaEntrada];
 
-    if (entradasGuardadas != null) {
-      listaEntradas = JSON.parse(entradasGuardadas);
-    }
+    const inventarioActualizado = productos.map(function (producto) {
+      if (producto.nombre === formData.producto) {
+        return {
+          ...producto,
+          stock: Number(producto.stock) + Number(formData.cantidad)
+        };
+      }
+      return producto;
+    });
 
-    listaEntradas.push(nuevaEntrada);
-
-    const inventarioGuardado = localStorage.getItem("inventario_app");
-
-    if (inventarioGuardado != null) {
-      let inventario = JSON.parse(inventarioGuardado);
-
-      inventario = inventario.map(function (producto) {
-        if (producto.nombre === formData.producto) {
-          return {
-            ...producto,
-            stock: Number(producto.stock) + Number(formData.cantidad)
-          };
-        }
-
-        return producto;
-      });
-
-      localStorage.setItem("inventario_app", JSON.stringify(inventario));
-      setProductos(inventario);
-    }
-
-    localStorage.setItem("entradas_app", JSON.stringify(listaEntradas));
-    setEntradas(listaEntradas);
+    // A1: Actualiza a través del context para que otros módulos se sincronicen
+    actualizarProductos(inventarioActualizado);
+    actualizarEntradas(listaEntradas);
 
     alert("Entrada registrada correctamente.");
 
@@ -103,10 +78,9 @@ function Entradas() {
     }, 0);
   }, [entradas]);
 
+  // M2: Usa función centralizada de stock crítico
   const totalCriticos = useMemo(function () {
-    return productos.filter(function (producto) {
-      return Number(producto.stock || 0) <= Number(producto.stockMinimo || 0);
-    }).length;
+    return contarCriticos(productos);
   }, [productos]);
 
   return (

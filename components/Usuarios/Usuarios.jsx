@@ -1,40 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, RefreshCw, Users } from 'lucide-react';
 import ItemUsuario from './ItemUsuario';
-
-const usuariosMock = [
-  {
-    id: 1,
-    nombre: "Juan Pérez",
-    usuario: "jperez",
-    rol: "Administrador",
-    estado: "Activo",
-    contraseña: "123456"
-  },
-  {
-    id: 2,
-    nombre: "Ana Torres",
-    usuario: "atorres",
-    rol: "Supervisor",
-    estado: "Activo",
-    contraseña: "123456"
-  },
-  {
-    id: 3,
-    nombre: "Luis Ramos",
-    usuario: "lramos",
-    rol: "Operario",
-    estado: "Activo",
-    contraseña: "123456"
-  }
-];
+import seedUsers from '../../src/data/seedUsers';
 
 function Usuarios() {
   const navigate = useNavigate();
 
   const [usuarios, setUsuarios] = useState([]);
-  const [busqueda, setbusqueda] = useState('');
+  const [busqueda, setBusqueda] = useState('');
   const [rolFilter, setRolFilter] = useState('Todos');
   const [estadoFilter, setEstadoFilter] = useState('Todos');
 
@@ -46,11 +20,11 @@ function Usuarios() {
         setUsuarios(JSON.parse(saved));
       } catch (e) {
         console.error("Error al parsear localStorage", e);
-        setUsuarios(usuariosMock);
+        setUsuarios(seedUsers);
       }
     } else {
-      setUsuarios(usuariosMock);
-      localStorage.setItem('usuarios_app', JSON.stringify(usuariosMock));
+      setUsuarios(seedUsers);
+      localStorage.setItem('usuarios_app', JSON.stringify(seedUsers));
     }
   }, []);
 
@@ -86,22 +60,24 @@ function Usuarios() {
 
   // Limpiar todos los filtros aplicados
   function handleResetFilters() {
-    setbusqueda('');
+    setBusqueda('');
     setRolFilter('Todos');
     setEstadoFilter('Todos');
   }
 
-  // Filtrado de usuarios
-  const usuariosFiltrados = usuarios.filter(function(usr) {
-    const matchesSearch = 
-      usr.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      usr.usuario.toLowerCase().includes(busqueda.toLowerCase());
-    
-    const matchesRol = rolFilter === 'Todos' || usr.rol === rolFilter;
-    const matchesEstado = estadoFilter === 'Todos' || usr.estado === estadoFilter;
+  // Adicional: useMemo para el filtrado de usuarios (consistencia con Salidas.jsx y Dashboard.jsx)
+  const usuariosFiltrados = useMemo(function() {
+    return usuarios.filter(function(usr) {
+      const matchesSearch = 
+        usr.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+        usr.usuario.toLowerCase().includes(busqueda.toLowerCase());
+      
+      const matchesRol = rolFilter === 'Todos' || usr.rol === rolFilter;
+      const matchesEstado = estadoFilter === 'Todos' || usr.estado === estadoFilter;
 
-    return matchesSearch && matchesRol && matchesEstado;
-  });
+      return matchesSearch && matchesRol && matchesEstado;
+    });
+  }, [usuarios, busqueda, rolFilter, estadoFilter]);
 
   return (
     <div className="space-y-6">
@@ -116,7 +92,7 @@ function Usuarios() {
             placeholder="Buscar por nombre o usuario..."
             value={busqueda}
             onChange={function(e) {
-              setbusqueda(e.currentTarget.value);
+              setBusqueda(e.currentTarget.value);
             }}
             className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
           />
@@ -157,6 +133,7 @@ function Usuarios() {
           {/* Limpiar filtros */}
           {(busqueda || rolFilter !== 'Todos' || estadoFilter !== 'Todos') && (
             <button
+              type="button"
               onClick={handleResetFilters}
               title="Restablecer filtros"
               className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 active:scale-95 transition-all cursor-pointer"
@@ -167,6 +144,7 @@ function Usuarios() {
 
           {/* Botón de Agregar Usuario (Navega a la página de registro) */}
           <button
+            type="button"
             onClick={function() {
               navigate("/usuarios/nuevo");
             }}
@@ -193,11 +171,10 @@ function Usuarios() {
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {usuariosFiltrados.length > 0 ? (
-                // Mapeo utilizando props en componentes hijos de manera idéntica al ejemplo del profesor
                 usuariosFiltrados.map(function(usuario, index) {
                   return (
                     <ItemUsuario
-                      key={"usuario" + index}
+                      key={usuario.id}
                       num={index + 1}
                       nombre={usuario.nombre}
                       usuario={usuario.usuario}

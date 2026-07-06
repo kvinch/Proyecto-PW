@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../src/context/AuthContext';
 import FondoParticulas from "./FondoParticulas"
 import { User, Lock, Boxes, AlertTriangle } from "lucide-react"
+import logo from '../../src/assets/LOGO.png';
 
 const Login = () => {
   const { login } = useAuth();
@@ -120,7 +121,7 @@ const Login = () => {
             <span className="self-start px-3 py-1 mt-4 rounded-full bg-white/25 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-white border border-white/10 z-10">
               ESTRUCASA
             </span>
-            <img className="rounded-full shadow-lg border-2 border-white/20 max-h-48 object-cover z-10 self-center" src="../src/assets/LOGO.png" alt="Estrucasa" />
+            <img className="rounded-full shadow-lg border-2 border-white/20 max-h-48 object-cover z-10 self-center" src={logo} alt="Estrucasa" />
             <div className="mt-auto z-10">
               <h3 className="text-xl font-bold mb-2">Gestión Inteligente</h3>
               <p className="text-sm text-blue-50/90 leading-relaxed font-light">

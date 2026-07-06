@@ -100,7 +100,7 @@ function RegistroProducto() {
       }
 
       listaProductos.push({
-        id: Date.now(),
+        id: crypto.randomUUID(),
         nombre: nombre.trim(),
         categoria: categoria,
         stock: stockNum,
@@ -134,8 +134,8 @@ function RegistroProducto() {
         </div>
       </div>
 
-      {/* Formulario */}
-      <form className="p-6 space-y-5">
+      {/* M3: onSubmit en el form para que Enter dispare el guardado */}
+      <form className="p-6 space-y-5" onSubmit={function(e) { e.preventDefault(); guardarProducto(); }}>
         {/* Nombre del producto */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -236,9 +236,8 @@ function RegistroProducto() {
           </button>
 
           <button
-            type="button"
+            type="submit"
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-sm text-white font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-blue-500/20 active:scale-[0.98] cursor-pointer"
-            onClick={guardarProducto}
           >
             <Save className="w-4 h-4" />
             {id != null ? "Guardar Cambios" : "Guardar"}

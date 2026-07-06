@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, RefreshCw, Package, AlertTriangle } from 'lucide-react';
 import ItemProducto from './ItemProducto';
+import { useInventario } from '../../src/context/InventarioContext';
+import { esCritico, isStockEnRiesgo, contarCriticos } from '../../src/utils/inventario';
 
 // RF-10: Datos mock iniciales de inventario
 const productosMock = [
@@ -33,33 +35,22 @@ const productosMock = [
 
 function Inventario() {
   const navigate = useNavigate();
+  // A1: Usa context compartido para productos
+  const { productos, actualizarProductos } = useInventario();
 
-  const [productos, setProductos] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [categoriaFilter, setCategoriaFilter] = useState('Todas');
   const [stockFilter, setStockFilter] = useState('Todos'); // RF-12: filtro por nivel de stock
 
-  // Carga inicial desde localStorage
+  // Carga inicial: si no hay datos en context/localStorage, usar mock
   useEffect(function () {
-    const saved = localStorage.getItem('inventario_app');
-    if (saved != null) {
-      try {
-        setProductos(JSON.parse(saved));
-      } catch (e) {
-        console.error("Error al parsear localStorage", e);
-        setProductos(productosMock);
+    if (productos.length === 0) {
+      const saved = localStorage.getItem('inventario_app');
+      if (saved == null) {
+        actualizarProductos(productosMock);
       }
-    } else {
-      setProductos(productosMock);
-      localStorage.setItem('inventario_app', JSON.stringify(productosMock));
     }
   }, []);
-
-  // Función para guardar en localStorage y actualizar estado local
-  function updateProductosList(newList) {
-    setProductos(newList);
-    localStorage.setItem('inventario_app', JSON.stringify(newList));
-  }
 
   // Eliminar un producto de la lista
   function handleDeleteProducto(id) {
@@ -67,7 +58,7 @@ function Inventario() {
       const filtered = productos.filter(function (p) {
         return p.id !== id;
       });
-      updateProductosList(filtered);
+      actualizarProductos(filtered);
     }
   }
 
@@ -79,27 +70,25 @@ function Inventario() {
   }
 
   // RF-12: Filtrado de productos por nombre, categoría y nivel de stock
+  // M2: Usa funciones centralizadas de stock
   const productosFiltrados = productos.filter(function (p) {
     const matchesSearch = p.nombre.toLowerCase().includes(busqueda.toLowerCase());
     const matchesCategoria = categoriaFilter === 'Todas' || p.categoria === categoriaFilter;
 
-    // Filtro por nivel de stock
     let matchesStock = true;
     if (stockFilter === 'Critico') {
-      matchesStock = p.stock <= p.stockMinimo;
+      matchesStock = esCritico(p);
     } else if (stockFilter === 'EnRiesgo') {
-      matchesStock = p.stock > p.stockMinimo && p.stock <= p.stockMinimo * 1.5;
+      matchesStock = isStockEnRiesgo(p);
     } else if (stockFilter === 'Normal') {
-      matchesStock = p.stock > p.stockMinimo * 1.5;
+      matchesStock = !esCritico(p) && !isStockEnRiesgo(p);
     }
 
     return matchesSearch && matchesCategoria && matchesStock;
   });
 
-  // RF-13: Conteo de productos en stock crítico para la alerta del encabezado
-  const totalCriticos = productos.filter(function (p) {
-    return p.stock <= p.stockMinimo;
-  }).length;
+  // RF-13: M2 — Conteo centralizado de productos en stock crítico
+  const totalCriticos = contarCriticos(productos);
 
   return (
     <div className="space-y-6">
@@ -116,6 +105,7 @@ function Inventario() {
           </p>
           {/* Acceso rápido al filtro de stock crítico */}
           <button
+            type="button"
             onClick={function () { setStockFilter('Critico'); }}
             className="ml-auto text-xs font-semibold underline underline-offset-2 hover:text-rose-900 transition-colors cursor-pointer"
           >
@@ -179,6 +169,7 @@ function Inventario() {
           {/* Limpiar filtros (sólo visible si hay alguno activo) */}
           {(busqueda || categoriaFilter !== 'Todas' || stockFilter !== 'Todos') && (
             <button
+              type="button"
               onClick={handleResetFilters}
               title="Restablecer filtros"
               className="p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800 active:scale-95 transition-all cursor-pointer"
@@ -187,8 +178,9 @@ function Inventario() {
             </button>
           )}
 
-          {/* RF-10: Botón para registrar nuevo producto */}
+          {/* RF-10: Botón para registrar nuevo producto — Adicional: type="button" explícito */}
           <button
+            type="button"
             onClick={function () {
               navigate("/Inventarios/nuevo");
             }}
@@ -216,11 +208,10 @@ function Inventario() {
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {productosFiltrados.length > 0 ? (
-                // Mapeo utilizando props en componentes hijos de manera idéntica al ejemplo del profesor
                 productosFiltrados.map(function (producto, index) {
                   return (
                     <ItemProducto
-                      key={"producto" + index}
+                      key={producto.id}
                       num={index + 1}
                       nombre={producto.nombre}
                       categoria={producto.categoria}

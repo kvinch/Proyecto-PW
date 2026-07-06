@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowUpCircle, Plus, Search, AlertTriangle } from "lucide-react";
+import { useInventario } from "../../src/context/InventarioContext";
+import { contarCriticos } from "../../src/utils/inventario";
 
 const salidasMock = [
   {
@@ -25,8 +27,9 @@ const salidasMock = [
 const motivosSugeridos = ["Mantenimiento", "Obra", "Merma", "Préstamo"];
 
 function Salidas() {
-  const [productos, setProductos] = useState([]);
-  const [salidas, setSalidas] = useState([]);
+  // A1: Usa context compartido
+  const { productos, salidas, actualizarProductos, actualizarSalidas } = useInventario();
+
   const [formData, setFormData] = useState({
     producto: "",
     cantidad: "",
@@ -44,21 +47,13 @@ function Salidas() {
     busqueda: ""
   });
 
-  useEffect(function () {
-    const inventarioGuardado = localStorage.getItem("inventario_app");
-    if (inventarioGuardado != null) {
-      setProductos(JSON.parse(inventarioGuardado));
-    }
-
+  // Inicializar salidas mock si no hay datos
+  useState(function () {
     const salidasGuardadas = localStorage.getItem("salidas_app");
-    if (salidasGuardadas != null) {
-      setSalidas(JSON.parse(salidasGuardadas));
-      return;
+    if (salidasGuardadas == null && salidas.length === 0) {
+      actualizarSalidas(salidasMock);
     }
-
-    localStorage.setItem("salidas_app", JSON.stringify(salidasMock));
-    setSalidas(salidasMock);
-  }, []);
+  });
 
   const productoSeleccionado = useMemo(function () {
     return productos.find(function (producto) {
@@ -72,10 +67,9 @@ function Salidas() {
     }, 0);
   }, [salidas]);
 
+  // M2: Usa función centralizada de stock crítico
   const stockCritico = useMemo(function () {
-    return productos.filter(function (producto) {
-      return Number(producto.stock || 0) <= Number(producto.stockMinimo || 0);
-    }).length;
+    return contarCriticos(productos);
   }, [productos]);
 
   function handleFormChange(e) {
@@ -134,7 +128,7 @@ function Salidas() {
     });
 
     const nuevaSalida = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       producto: formData.producto,
       cantidad: cantidadSolicitada,
       motivo: formData.motivo,
@@ -145,11 +139,10 @@ function Salidas() {
 
     const historialActualizado = [...salidas, nuevaSalida];
 
-    localStorage.setItem("inventario_app", JSON.stringify(inventarioActualizado));
-    localStorage.setItem("salidas_app", JSON.stringify(historialActualizado));
+    // A1: Actualiza a través del context para sincronización entre módulos
+    actualizarProductos(inventarioActualizado);
+    actualizarSalidas(historialActualizado);
 
-    setProductos(inventarioActualizado);
-    setSalidas(historialActualizado);
     setFormData({
       producto: "",
       cantidad: "",
