@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { UserPlus, ArrowLeft, Save } from "lucide-react";
+import { useAlert } from "../../src/context/AlertContext.jsx";
 
 function RegistroUsuario() {
   const navigate = useNavigate();
   const { id } = useParams(); // Obtenemos el ID de la URL si estamos editando
+  const { showAlert } = useAlert();
 
   // Declaración de estados locales — A3: campo unificado a "contrasena" (sin tilde)
   const [nombre, setNombre] = useState("");
@@ -39,7 +41,7 @@ function RegistroUsuario() {
     e.preventDefault();
 
     if (nombre.trim() === "" || usuario.trim() === "" || contrasena.trim() === "") {
-      alert("Por favor, completa todos los campos.");
+      showAlert("Por favor, completa todos los campos.", "warning");
       return;
     }
 
@@ -57,7 +59,7 @@ function RegistroUsuario() {
       });
 
       if (existeOtro) {
-        alert("El nombre de usuario @" + usuario + " ya está en uso por otro usuario.");
+        showAlert("El nombre de usuario @" + usuario + " ya está en uso por otro usuario.", "error");
         return;
       }
 
@@ -82,7 +84,7 @@ function RegistroUsuario() {
       });
 
       if (existe) {
-        alert("El nombre de usuario @" + usuario + " ya existe.");
+        showAlert("El nombre de usuario @" + usuario + " ya existe.", "error");
         return;
       }
 

@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Package, ArrowLeft, Save } from "lucide-react";
+import { useAlert } from "../../src/context/AlertContext.jsx";
 
 function RegistroProducto() {
   const navigate = useNavigate();
   const { id } = useParams(); // Obtenemos el ID de la URL si estamos editando
+  const { showAlert } = useAlert();
 
   // Declaración de estados locales del formulario
   const [nombre, setNombre] = useState("");
@@ -39,7 +41,7 @@ function RegistroProducto() {
   function guardarProducto() {
     // Validación de campos obligatorios
     if (nombre.trim() === "" || stock === "" || stockMinimo === "") {
-      alert("Por favor, completa todos los campos.");
+      showAlert("Por favor, completa todos los campos.", "warning");
       return;
     }
 
@@ -48,7 +50,7 @@ function RegistroProducto() {
     const stockMinimoNum = Number(stockMinimo);
 
     if (isNaN(stockNum) || isNaN(stockMinimoNum) || stockNum < 0 || stockMinimoNum < 0) {
-      alert("El stock y el stock mínimo deben ser números positivos.");
+      showAlert("El stock y el stock mínimo deben ser números positivos.", "error");
       return;
     }
 
@@ -68,7 +70,7 @@ function RegistroProducto() {
       });
 
       if (existeOtro) {
-        alert("Ya existe un producto con el nombre \"" + nombre + "\".");
+        showAlert("Ya existe un producto con el nombre \"" + nombre + "\".", "error");
         return;
       }
 
@@ -95,7 +97,7 @@ function RegistroProducto() {
       });
 
       if (existe) {
-        alert("Ya existe un producto con el nombre \"" + nombre + "\".");
+        showAlert("Ya existe un producto con el nombre \"" + nombre + "\".", "error");
         return;
       }
 

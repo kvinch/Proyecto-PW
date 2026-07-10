@@ -2,9 +2,11 @@ import { useMemo, useState } from "react";
 import { Plus, ArrowDownCircle, Boxes, AlertTriangle } from "lucide-react";
 import TablaEntradas from "./TablaEntradas";
 import { useInventario } from "../../src/context/InventarioContext";
+import { useAlert } from "../../src/context/AlertContext";
 import { contarCriticos } from "../../src/utils/inventario";
 
 function Entradas() {
+  const { showAlert } = useAlert();
   // A1: Usa context compartido en lugar de localStorage aislado
   const { productos, entradas, actualizarProductos, actualizarEntradas } = useInventario();
 
@@ -34,7 +36,7 @@ function Entradas() {
       formData.responsable === "" ||
       formData.fecha === ""
     ) {
-      alert("Completa todos los campos.");
+      showAlert("Completa todos los campos.", "warning");
       return;
     }
 
@@ -60,7 +62,7 @@ function Entradas() {
     actualizarProductos(inventarioActualizado);
     actualizarEntradas(listaEntradas);
 
-    alert("Entrada registrada correctamente.");
+    showAlert("Entrada registrada correctamente.", "success");
 
     setFormData({
       producto: "",

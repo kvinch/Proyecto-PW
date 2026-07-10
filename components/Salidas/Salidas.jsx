@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowUpCircle, Plus, Search, AlertTriangle } from "lucide-react";
 import { useInventario } from "../../src/context/InventarioContext";
 import { contarCriticos } from "../../src/utils/inventario";
+import { useAlert } from "../../src/context/AlertContext";
 
 const salidasMock = [
   {
@@ -27,6 +28,7 @@ const salidasMock = [
 const motivosSugeridos = ["Mantenimiento", "Obra", "Merma", "Préstamo"];
 
 function Salidas() {
+  const { showAlert } = useAlert();
   // A1: Usa context compartido
   const { productos, salidas, actualizarProductos, actualizarSalidas } = useInventario();
 
@@ -96,24 +98,24 @@ function Salidas() {
       formData.responsable === "" ||
       formData.fecha === ""
     ) {
-      alert("Completa todos los campos obligatorios.");
+      showAlert("Completa todos los campos obligatorios.", "warning");
       return;
     }
 
     const cantidadSolicitada = Number(formData.cantidad);
 
     if (Number.isNaN(cantidadSolicitada) || cantidadSolicitada <= 0) {
-      alert("La cantidad debe ser un número mayor a 0.");
+      showAlert("La cantidad debe ser un número mayor a 0.", "error");
       return;
     }
 
     if (!productoSeleccionado) {
-      alert("Selecciona un producto válido.");
+      showAlert("Selecciona un producto válido.", "error");
       return;
     }
 
     if (cantidadSolicitada > Number(productoSeleccionado.stock)) {
-      alert("Stock insuficiente para realizar la salida.");
+      showAlert("Stock insuficiente para realizar la salida.", "error");
       return;
     }
 
@@ -152,7 +154,7 @@ function Salidas() {
       observacion: ""
     });
 
-    alert("Salida registrada correctamente.");
+    showAlert("Salida registrada correctamente.", "success");
   }
 
   const salidasFiltradas = useMemo(function () {
