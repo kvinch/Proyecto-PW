@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Package, ArrowLeft, Save } from "lucide-react";
+import { useAlert } from "../../src/context/AlertContext.jsx";
 
 function RegistroProducto() {
   const navigate = useNavigate();
   const { id } = useParams(); // Obtenemos el ID de la URL si estamos editando
+  const { showAlert } = useAlert();
 
   // Declaración de estados locales del formulario
   const [nombre, setNombre] = useState("");
@@ -39,7 +41,7 @@ function RegistroProducto() {
   function guardarProducto() {
     // Validación de campos obligatorios
     if (nombre.trim() === "" || stock === "" || stockMinimo === "") {
-      alert("Por favor, completa todos los campos.");
+      showAlert("Por favor, completa todos los campos.", "warning");
       return;
     }
 
@@ -48,7 +50,7 @@ function RegistroProducto() {
     const stockMinimoNum = Number(stockMinimo);
 
     if (isNaN(stockNum) || isNaN(stockMinimoNum) || stockNum < 0 || stockMinimoNum < 0) {
-      alert("El stock y el stock mínimo deben ser números positivos.");
+      showAlert("El stock y el stock mínimo deben ser números positivos.", "error");
       return;
     }
 
@@ -68,7 +70,7 @@ function RegistroProducto() {
       });
 
       if (existeOtro) {
-        alert("Ya existe un producto con el nombre \"" + nombre + "\".");
+        showAlert("Ya existe un producto con el nombre \"" + nombre + "\".", "error");
         return;
       }
 
@@ -95,12 +97,12 @@ function RegistroProducto() {
       });
 
       if (existe) {
-        alert("Ya existe un producto con el nombre \"" + nombre + "\".");
+        showAlert("Ya existe un producto con el nombre \"" + nombre + "\".", "error");
         return;
       }
 
       listaProductos.push({
-        id: Date.now(),
+        id: crypto.randomUUID(),
         nombre: nombre.trim(),
         categoria: categoria,
         stock: stockNum,
@@ -134,8 +136,8 @@ function RegistroProducto() {
         </div>
       </div>
 
-      {/* Formulario */}
-      <form className="p-6 space-y-5">
+      {/* M3: onSubmit en el form para que Enter dispare el guardado */}
+      <form className="p-6 space-y-5" onSubmit={function(e) { e.preventDefault(); guardarProducto(); }}>
         {/* Nombre del producto */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -236,9 +238,8 @@ function RegistroProducto() {
           </button>
 
           <button
-            type="button"
+            type="submit"
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-sm text-white font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-blue-500/20 active:scale-[0.98] cursor-pointer"
-            onClick={guardarProducto}
           >
             <Save className="w-4 h-4" />
             {id != null ? "Guardar Cambios" : "Guardar"}

@@ -1,4 +1,16 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import seedUsers from '../data/seedUsers';
+
+/**
+ * LIMITACIÓN DE SEGURIDAD — Proyecto Académico (sin backend)
+ *
+ * - El control de roles es exclusivamente visual y alterable desde DevTools. (M4)
+ * - Las contraseñas se almacenan en texto plano en localStorage (A2), ya que no
+ *   existe un backend que gestione hashing seguro (ej. bcrypt).
+ * - Las contraseñas de los usuarios seed (defaultUsers) quedan visibles en el
+ *   bundle de producción (dist/assets/index-*.js) al estar hardcodeadas.
+ * - Estas limitaciones son aceptables únicamente en un contexto académico.
+ */
 
 const AuthContext = createContext(null);
 
@@ -18,11 +30,7 @@ const routeSections = [
   { section: 'usuarios', match: (path) => path.startsWith('/usuarios') }
 ];
 
-const defaultUsers = [
-  { id: 1, nombre: "Juan Pérez", usuario: "jperez", rol: "Administrador", estado: "Activo", contrasena: "123456" },
-  { id: 2, nombre: "Ana Torres", usuario: "atorres", rol: "Supervisor", estado: "Activo", contrasena: "123456" },
-  { id: 3, nombre: "Luis Ramos", usuario: "lramos", rol: "Operario", estado: "Activo", contrasena: "123456" }
-];
+// Se usa seedUsers importado desde src/data/seedUsers.js como fuente única de datos
 
 const getAllowedSections = (role) => rolePermissions[role] || [];
 
@@ -45,6 +53,7 @@ export const getDefaultPathForRole = (role) => {
   return '/login';
 };
 
+// C1 FIX: Solo inserta usuarios seed que no existen. Nunca sobrescribe datos ya existentes.
 const asegurarUsuariosPorDefecto = () => {
   const savedUsersStr = localStorage.getItem('usuarios_app');
   let users = [];
@@ -60,12 +69,11 @@ const asegurarUsuariosPorDefecto = () => {
   let modificado = false;
 
   if (!Array.isArray(users)) {
-    users = [...defaultUsers];
+    users = [...seedUsers];
     modificado = true;
   } else {
-    // Si la lista existe, nos aseguramos de que los 3 usuarios por defecto estén registrados
-    // y sincronizados con sus datos base.
-    defaultUsers.forEach((defUser) => {
+    // Solo insertamos el seed si no existe aún; nunca sobrescribimos datos editados
+    seedUsers.forEach((defUser) => {
       const existingIndex = users.findIndex(
         (u) => u.usuario.toLowerCase() === defUser.usuario.toLowerCase()
       );
@@ -73,25 +81,8 @@ const asegurarUsuariosPorDefecto = () => {
       if (existingIndex === -1) {
         users.push(defUser);
         modificado = true;
-        return;
       }
-
-      const currentUser = users[existingIndex];
-      const mergedUser = {
-        ...currentUser,
-        id: defUser.id,
-        nombre: defUser.nombre,
-        usuario: defUser.usuario,
-        rol: defUser.rol,
-        estado: defUser.estado,
-        contrasena: defUser.contrasena,
-        contraseña: defUser.contrasena
-      };
-
-      if (JSON.stringify(currentUser) !== JSON.stringify(mergedUser)) {
-        users[existingIndex] = mergedUser;
-        modificado = true;
-      }
+      // Si ya existe, no se toca — las ediciones del usuario se preservan
     });
   }
 
@@ -113,13 +104,33 @@ const obtenerUsuarioActualizado = (currentUser) => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  // B7: Rehidratar sesión desde sessionStorage al montar la app
+  const [user, setUser] = useState(function () {
+    const savedSession = sessionStorage.getItem('session_user');
+    if (savedSession) {
+      try {
+        return JSON.parse(savedSession);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(false);
 
   // Asegurar la presencia de los usuarios por defecto al montar la aplicación
   useEffect(() => {
     asegurarUsuariosPorDefecto();
   }, []);
+
+  // B7: Persistir sesión en sessionStorage cuando cambia el usuario
+  useEffect(() => {
+    if (user) {
+      sessionStorage.setItem('session_user', JSON.stringify(user));
+    } else {
+      sessionStorage.removeItem('session_user');
+    }
+  }, [user]);
 
   // Función para iniciar sesión (guardando el usuario en memoria)
   const login = (username, password) => {
@@ -134,9 +145,8 @@ export const AuthProvider = ({ children }) => {
       return { success: false, error: "El usuario ingresado no existe." };
     }
 
-    // 3. Validar contraseña
-    const correctPassword = foundUser.contraseña || foundUser.contrasena;
-    if (correctPassword !== password) {
+    // 3. Validar contraseña — A3: campo unificado a "contrasena" (sin tilde)
+    if (foundUser.contrasena !== password) {
       return { success: false, error: "La contraseña es incorrecta." };
     }
 
@@ -150,7 +160,7 @@ export const AuthProvider = ({ children }) => {
     return { success: true };
   };
 
-  // Función para cerrar sesión (limpia el estado de memoria)
+  // Función para cerrar sesión (limpia el estado de memoria y sessionStorage)
   const logout = () => {
     setUser(null);
   };

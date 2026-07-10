@@ -1,7 +1,21 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth, canAccessPath } from '../context/AuthContext';
 
 export default function InicioPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  useEffect(function () { document.title = 'Inicio — Estrucasa'; }, []);
+
+  // B5: Verificar rol del usuario y redirigir al destino correcto
+  function handleGoToDashboard() {
+    if (canAccessPath(user?.rol, '/Dashboard')) {
+      navigate('/Dashboard');
+    } else {
+      navigate('/Entradas');
+    }
+  }
 
   return (
     <section className="relative min-h-[calc(100vh-3rem)] bg-white overflow-hidden">
@@ -24,10 +38,10 @@ export default function InicioPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <button
               type="button"
-              onClick={function() { navigate('/Dashboard'); }}
+              onClick={handleGoToDashboard}
               className="w-full sm:w-auto px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
             >
-              Ir al Dashboard
+              {canAccessPath(user?.rol, '/Dashboard') ? 'Ir al Dashboard' : 'Ir a Entradas'}
             </button>
             <button
               type="button"

@@ -1,10 +1,14 @@
-import Usuarios from "../../components/Usuarios/Usuarios"
+import { useEffect } from "react";
+import Usuarios from "../../components/Usuarios/Usuarios";
 
-function usuarioPage() {
-return (
+function UsuarioPage() {
+  useEffect(function () { document.title = 'Usuarios — Estrucasa'; }, []);
+
+  return (
     <div>
-        <Usuarios />
+      <Usuarios />
     </div>
-)
+  );
 }
-export default usuarioPage
+
+export default UsuarioPage;

@@ -1,10 +1,15 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, ArrowDownCircle, Boxes, AlertTriangle } from "lucide-react";
 import TablaEntradas from "./TablaEntradas";
+import { useInventario } from "../../src/context/InventarioContext";
+import { useAlert } from "../../src/context/AlertContext";
+import { contarCriticos } from "../../src/utils/inventario";
 
 function Entradas() {
-  const [productos, setProductos] = useState([]);
-  const [entradas, setEntradas] = useState([]);
+  const { showAlert } = useAlert();
+  // A1: Usa context compartido en lugar de localStorage aislado
+  const { productos, entradas, actualizarProductos, actualizarEntradas } = useInventario();
+
   const [formData, setFormData] = useState({
     producto: "",
     cantidad: "",
@@ -13,24 +18,7 @@ function Entradas() {
     fecha: "",
     observacion: ""
   });
-  const [modal, setModal] = useState({
-    visible: false,
-    titulo: "",
-    mensaje: "",
-    tipo: ""
-  });
 
-  useEffect(function () {
-    const inventarioGuardado = localStorage.getItem("inventario_app");
-    if (inventarioGuardado != null) {
-      setProductos(JSON.parse(inventarioGuardado));
-    }
-
-    const entradasGuardadas = localStorage.getItem("entradas_app");
-    if (entradasGuardadas != null) {
-      setEntradas(JSON.parse(entradasGuardadas));
-    }
-  }, []);
 
   function handleChange(e) {
     setFormData({
@@ -49,59 +37,33 @@ function Entradas() {
       formData.responsable === "" ||
       formData.fecha === ""
     ) {
-      setModal({
-        visible: true,
-        titulo: "Campos incompletos",
-        mensaje: "Completa todos los campos obligatorios.",
-        tipo: "error"
-      });
+      showAlert("Completa todos los campos.", "warning");
       return;
     }
 
     const nuevaEntrada = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       ...formData,
       cantidad: Number(formData.cantidad)
     };
 
-    const entradasGuardadas = localStorage.getItem("entradas_app");
-    let listaEntradas = [];
+    const listaEntradas = [...entradas, nuevaEntrada];
 
-    if (entradasGuardadas != null) {
-      listaEntradas = JSON.parse(entradasGuardadas);
-    }
-
-    listaEntradas.push(nuevaEntrada);
-
-    const inventarioGuardado = localStorage.getItem("inventario_app");
-
-    if (inventarioGuardado != null) {
-      let inventario = JSON.parse(inventarioGuardado);
-
-      inventario = inventario.map(function (producto) {
-        if (producto.nombre === formData.producto) {
-          return {
-            ...producto,
-            stock: Number(producto.stock) + Number(formData.cantidad)
-          };
-        }
-
-        return producto;
-      });
-
-      localStorage.setItem("inventario_app", JSON.stringify(inventario));
-      setProductos(inventario);
-    }
-
-    localStorage.setItem("entradas_app", JSON.stringify(listaEntradas));
-    setEntradas(listaEntradas);
-
-    setModal({
-      visible: true,
-      titulo: "Registro exitoso",
-      mensaje: "La entrada fue registrada correctamente.",
-      tipo: "success"
+    const inventarioActualizado = productos.map(function (producto) {
+      if (producto.nombre === formData.producto) {
+        return {
+          ...producto,
+          stock: Number(producto.stock) + Number(formData.cantidad)
+        };
+      }
+      return producto;
     });
+
+    // A1: Actualiza a través del context para que otros módulos se sincronicen
+    actualizarProductos(inventarioActualizado);
+    actualizarEntradas(listaEntradas);
+
+    showAlert("Entrada registrada correctamente.", "success");
 
     setFormData({
       producto: "",
@@ -119,10 +81,9 @@ function Entradas() {
     }, 0);
   }, [entradas]);
 
+  // M2: Usa función centralizada de stock crítico
   const totalCriticos = useMemo(function () {
-    return productos.filter(function (producto) {
-      return Number(producto.stock || 0) <= Number(producto.stockMinimo || 0);
-    }).length;
+    return contarCriticos(productos);
   }, [productos]);
 
   return (
@@ -242,53 +203,6 @@ function Entradas() {
       </div>
 
       <TablaEntradas entradas={entradas} />
-
-      {
-        modal.visible && (
-
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
-            <div className="bg-white rounded-2xl shadow-xl w-100 p-6">
-
-              <h2
-                className={`text-xl font-bold mb-3 ${modal.tipo === "success"
-                    ? "text-emerald-600"
-                    : "text-red-600"
-                  }`}
-              >
-                {modal.titulo}
-              </h2>
-
-              <p className="text-slate-600 mb-6">
-                {modal.mensaje}
-              </p>
-
-              <div className="flex justify-end">
-
-                <button
-                  onClick={function () {
-
-                    setModal({
-                      visible: false,
-                      titulo: "",
-                      mensaje: "",
-                      tipo: ""
-                    });
-
-                  }}
-                  className="px-5 py-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Aceptar
-                </button>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        )
-      }
 
     </div>
   );

@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { UserPlus, ArrowLeft, Save } from "lucide-react";
+import { useAlert } from "../../src/context/AlertContext.jsx";
 
 function RegistroUsuario() {
   const navigate = useNavigate();
   const { id } = useParams(); // Obtenemos el ID de la URL si estamos editando
+  const { showAlert } = useAlert();
 
-  // Declaración de estados locales
+  // Declaración de estados locales — A3: campo unificado a "contrasena" (sin tilde)
   const [nombre, setNombre] = useState("");
   const [usuario, setUsuario] = useState("");
-  const [contraseña, setContraseña] = useState("");
+  const [contrasena, setContrasena] = useState("");
   const [rol, setRol] = useState("Operario");
   const [estado, setEstado] = useState("Activo");
 
@@ -19,7 +21,6 @@ function RegistroUsuario() {
       const listaUsuariosStr = localStorage.getItem("usuarios_app");
       if (listaUsuariosStr != null) {
         const listaUsuarios = JSON.parse(listaUsuariosStr);
-        // Buscamos al usuario por su ID
         const usuarioEncontrado = listaUsuarios.find(function(u) {
           return u.id === Number(id);
         });
@@ -27,7 +28,7 @@ function RegistroUsuario() {
         if (usuarioEncontrado != null) {
           setNombre(usuarioEncontrado.nombre);
           setUsuario(usuarioEncontrado.usuario);
-          setContraseña(usuarioEncontrado.contraseña || "");
+          setContrasena(usuarioEncontrado.contrasena || "");
           setRol(usuarioEncontrado.rol);
           setEstado(usuarioEncontrado.estado);
         }
@@ -35,10 +36,12 @@ function RegistroUsuario() {
     }
   }, [id]);
 
-  // Función guardar con soporte para creación y edición
-  function guardarUsuario() {
-    if (nombre.trim() === "" || usuario.trim() === "" || contraseña.trim() === "") {
-      alert("Por favor, completa todos los campos.");
+  // M3: handler de submit en el form para que Enter también dispare el guardado
+  function guardarUsuario(e) {
+    e.preventDefault();
+
+    if (nombre.trim() === "" || usuario.trim() === "" || contrasena.trim() === "") {
+      showAlert("Por favor, completa todos los campos.", "warning");
       return;
     }
 
@@ -50,26 +53,23 @@ function RegistroUsuario() {
     }
 
     if (id != null) {
-      // Acá entra al modo edición del usuario
-
-      // Verificar si el nombre de usuario ya está tomado por OTRO usuario
+      // Modo edición del usuario
       const existeOtro = listaUsuarios.some(function(u) {
         return u.usuario === usuario.trim().toLowerCase() && u.id !== Number(id);
       });
 
       if (existeOtro) {
-        alert("El nombre de usuario @" + usuario + " ya está en uso por otro usuario.");
+        showAlert("El nombre de usuario @" + usuario + " ya está en uso por otro usuario.", "error");
         return;
       }
 
-      // Mapeamos para actualizar los datos del usuario modificado
       listaUsuarios = listaUsuarios.map(function(u) {
         if (u.id === Number(id)) {
           return {
             ...u,
             nombre: nombre.trim(),
             usuario: usuario.trim().toLowerCase(),
-            contraseña: contraseña.trim(),
+            contrasena: contrasena.trim(),
             rol: rol,
             estado: estado
           };
@@ -78,21 +78,21 @@ function RegistroUsuario() {
       });
 
     } else {
-     //Si no entra en modo edición, entonces entra a modo creación
+      // Modo creación
       const existe = listaUsuarios.some(function(u) {
         return u.usuario === usuario.trim().toLowerCase();
       });
 
       if (existe) {
-        alert("El nombre de usuario @" + usuario + " ya existe.");
+        showAlert("El nombre de usuario @" + usuario + " ya existe.", "error");
         return;
       }
 
       listaUsuarios.push({
-        id: Date.now(),
+        id: crypto.randomUUID(),
         nombre: nombre.trim(),
         usuario: usuario.trim().toLowerCase(),
-        contraseña: contraseña.trim(),
+        contrasena: contrasena.trim(),
         rol: rol,
         estado: estado
       });
@@ -123,8 +123,8 @@ function RegistroUsuario() {
         </div>
       </div>
 
-      {/* Formulario */}
-      <form className="p-6 space-y-5">
+      {/* M3: onSubmit en el form para que Enter dispare guardarUsuario */}
+      <form className="p-6 space-y-5" onSubmit={guardarUsuario}>
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
             Nombre Completo
@@ -163,9 +163,9 @@ function RegistroUsuario() {
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
             type="password"
             placeholder="******"
-            value={contraseña}
+            value={contrasena}
             onChange={function(e) {
-              setContraseña(e.currentTarget.value);
+              setContrasena(e.currentTarget.value);
             }}
           />
         </div>
@@ -213,10 +213,10 @@ function RegistroUsuario() {
             Cancelar
           </button>
           
+          {/* M3: type="submit" para que Enter funcione */}
           <button
-            type="button"
+            type="submit"
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-sm text-white font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-blue-500/20 active:scale-[0.98] cursor-pointer"
-            onClick={guardarUsuario}
           >
             <Save className="w-4 h-4" />
             {id != null ? "Guardar Cambios" : "Guardar"}

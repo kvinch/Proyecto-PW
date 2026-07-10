@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { canAccessPath, useAuth } from '../../src/context/AuthContext';
 import { 

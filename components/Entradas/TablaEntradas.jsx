@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 
 function TablaEntradas(props) {
@@ -67,6 +67,7 @@ function TablaEntradas(props) {
             <tr>
               <th className="px-6 py-3 text-left">Producto</th>
               <th className="px-6 py-3 text-left">Cantidad</th>
+              {/* B6: Columnas Proveedor y Observación añadidas */}
               <th className="px-6 py-3 text-left">Proveedor</th>
               <th className="px-6 py-3 text-left">Responsable</th>
               <th className="px-6 py-3 text-left">Fecha</th>
@@ -85,10 +86,10 @@ function TablaEntradas(props) {
                         +{entrada.cantidad}
                       </span>
                     </td>
-                    <td className="px-6 py-3.5 text-slate-600">{entrada.proveedor}</td>
+                    <td className="px-6 py-3.5 text-slate-600">{entrada.proveedor || "-"}</td>
                     <td className="px-6 py-3.5 text-slate-600">{entrada.responsable}</td>
                     <td className="px-6 py-3.5 text-slate-500">{entrada.fecha}</td>
-                    <td className="px-6 py-3.5 text-slate-600">{entrada.observacion || "-"}</td>
+                    <td className="px-6 py-3.5 text-slate-500">{entrada.observacion || "-"}</td>
                   </tr>
                 );
               })

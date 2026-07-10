@@ -1,9 +1,8 @@
-import React from 'react';
-import {Trash2, Edit2, CheckCircle2, XCircle } from 'lucide-react';
+import { Trash2, Edit2, CheckCircle2, XCircle } from 'lucide-react';
 
-function ItemUsuario(users) {
+// B3: Props desestructuradas para claridad semántica
+function ItemUsuario({ num, nombre, usuario, rol, estado, onToggle, onEdit, onDelete }) {
 
-  //Extraes la información del rol con un case switch
   function getRolBadge(rol) {
     switch (rol) {
       case 'Administrador':
@@ -16,7 +15,6 @@ function ItemUsuario(users) {
     }
   }
 
-  // Función para colorear el estado del usuario
   function getEstadoBadge(estado) {
     return estado === 'Activo'
       ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
@@ -24,40 +22,39 @@ function ItemUsuario(users) {
   }
 
   return (
-    //Numero de índice en la tabla del usuario
     <tr className="hover:bg-slate-50/50 transition-colors group">
       <td className="px-6 py-4 font-medium text-slate-400">
-        {users.num} 
+        {num} 
       </td>
-
 
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-semibold border border-slate-200">
-            {users.nombre.charAt(0).toUpperCase()} {/* Le pones en mayúscula al inicio para sacar el ávatar*/}
+            {nombre.charAt(0).toUpperCase()}
           </div>
           <div>
-            <div className="font-semibold text-slate-800">{users.nombre}</div>       {/* Extraes el nombre del user */}      
-            <div className="text-xs text-slate-400">@{users.usuario}</div>       {/* Extraes el usuario del user */}      
+            <div className="font-semibold text-slate-800">{nombre}</div>
+            <div className="text-xs text-slate-400">@{usuario}</div>
           </div>
         </div>
       </td>
       
       {/* Rol */}
       <td className="px-6 py-4">
-        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${getRolBadge(users.rol)}`}>
-          {users.rol}       {/* Extraes el rol del user */}      
+        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${getRolBadge(rol)}`}>
+          {rol}
         </span>
       </td>
       
-      {/* Extraes el rol y cuando cliqueas cambias de estado */}      
+      {/* Estado con toggle */}
       <td className="px-6 py-4">
         <button 
-          onClick={users.onToggle} 
+          type="button"
+          onClick={onToggle} 
           title="Cambiar estado"
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer hover:scale-105 active:scale-95 transition-all ${getEstadoBadge(users.estado)}`}
-        >      {/* Estado del usuario, si === Activo, entonces sale verde, en caso no, se pone rojo */}      
-          {users.estado === 'Activo' ? (
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer hover:scale-105 active:scale-95 transition-all ${getEstadoBadge(estado)}`}
+        >
+          {estado === 'Activo' ? (
             <>
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
               <span>Activo</span>
@@ -74,18 +71,18 @@ function ItemUsuario(users) {
       {/* Acciones: Editar y Eliminar */}
       <td className="px-6 py-4 text-right">
         <div className="flex items-center justify-end gap-2">
-          {/* Botón de Editar */}
           <button
-            onClick={users.onEdit}
+            type="button"
+            onClick={onEdit}
             title="Editar usuario"
             className="p-2 rounded-lg text-slate-500 hover:bg-blue-50 hover:text-blue-600 active:scale-95 transition-all cursor-pointer"
           >
             <Edit2 className="w-4 h-4" />
           </button>
           
-          {/* Botón de Eliminar */}
           <button
-            onClick={users.onDelete}
+            type="button"
+            onClick={onDelete}
             title="Eliminar usuario"
             className="p-2 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 active:scale-95 transition-all cursor-pointer"
           >
