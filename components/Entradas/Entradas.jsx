@@ -19,6 +19,7 @@ function Entradas() {
     observacion: ""
   });
 
+
   function handleChange(e) {
     setFormData({
       ...formData,
@@ -202,6 +203,7 @@ function Entradas() {
       </div>
 
       <TablaEntradas entradas={entradas} />
+
     </div>
   );
 }
