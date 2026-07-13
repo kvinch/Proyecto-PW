@@ -1,13 +1,15 @@
 import express from "express"
 import bodyParser from "body-parser"
+import cors from "cors"
 import { PrismaClient } from "./generated/prisma/index.js"
 import { Pool } from "pg"
 import { PrismaPg } from "@prisma/adapter-pg"
 import 'dotenv/config'
 
 const app = express()
-const PORT = process.env["PORT"] | 5000
+const PORT = process.env["PORT"] || 5000
 
+app.use(cors())
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({
     extended: true
@@ -212,5 +214,103 @@ app.post("/entradas", async (req, res) => {
             error: "Error al registrar la entrada"
         })
 
+    }
+})
+
+// ---------- RF-15: Historial de Salidas ----------
+app.get("/salidas", async (req, res) => {
+    try {
+        const salidas = await prisma.salidas.findMany({
+            include: {
+                producto: true
+            },
+            orderBy: {
+                id: "desc"
+            }
+        })
+
+        res.json(salidas)
+    } catch (error) {
+        res.status(500).json({
+            error: "Error al obtener las salidas"
+        })
+    }
+})
+
+// ---------- RF-15: Registrar Salida ----------
+app.post("/salidas", async (req, res) => {
+    try {
+        const {
+            cantidad,
+            motivo,
+            responsable,
+            fecha,
+            observacion,
+            productoId
+        } = req.body
+
+        if (
+            cantidad == null ||
+            !motivo ||
+            !responsable ||
+            !fecha ||
+            productoId == null
+        ) {
+            return res.status(400).json({
+                error: "Todos los campos obligatorios deben ser completados"
+            })
+        }
+
+        const cantidadSalida = Number(cantidad)
+
+        if (Number.isNaN(cantidadSalida) || cantidadSalida <= 0) {
+            return res.status(400).json({
+                error: "La cantidad debe ser mayor a 0"
+            })
+        }
+
+        const producto = await prisma.producto.findUnique({
+            where: {
+                id: Number(productoId)
+            }
+        })
+
+        if (!producto) {
+            return res.status(404).json({
+                error: "Producto no encontrado"
+            })
+        }
+
+        if (cantidadSalida > producto.stock) {
+            return res.status(400).json({
+                error: "Stock insuficiente para realizar la salida"
+            })
+        }
+
+        const nuevaSalida = await prisma.salidas.create({
+            data: {
+                cantidad: cantidadSalida,
+                motivo,
+                responsable,
+                fecha: new Date(fecha),
+                observacion,
+                productoId: Number(productoId)
+            }
+        })
+
+        await prisma.producto.update({
+            where: {
+                id: Number(productoId)
+            },
+            data: {
+                stock: producto.stock - cantidadSalida
+            }
+        })
+
+        res.status(201).json(nuevaSalida)
+    } catch (error) {
+        res.status(500).json({
+            error: "Error al registrar la salida"
+        })
     }
 })

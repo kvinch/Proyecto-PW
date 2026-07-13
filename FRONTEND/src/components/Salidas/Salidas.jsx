@@ -1,39 +1,31 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowUpCircle, Plus, Search, AlertTriangle } from "lucide-react";
-import { useInventario } from "../../context/InventarioContext";
 import { contarCriticos } from "../../utils/inventario";
 import { useAlert } from "../../context/AlertContext";
 
-const salidasMock = [
-  {
-    id: 1,
-    producto: "Cable UTP Cat 6",
-    cantidad: 20,
-    motivo: "Obra",
-    responsable: "Luis Ramos",
-    fecha: "2026-05-22",
-    observacion: ""
-  },
-  {
-    id: 2,
-    producto: "Conectores RJ45",
-    cantidad: 30,
-    motivo: "Mantenimiento",
-    responsable: "Ana Torres",
-    fecha: "2026-05-23",
-    observacion: ""
-  }
-];
+const API_URL = "http://localhost:5000";
+const motivosSugeridos = ["Mantenimiento", "Obra", "Merma", "Prestamo"];
 
-const motivosSugeridos = ["Mantenimiento", "Obra", "Merma", "Préstamo"];
+function formatearFecha(fecha) {
+  if (!fecha) {
+    return "";
+  }
+
+  return String(fecha).slice(0, 10);
+}
+
+function obtenerNombreProducto(salida) {
+  return salida.producto?.nombre || "";
+}
 
 function Salidas() {
   const { showAlert } = useAlert();
-  // A1: Usa context compartido
-  const { productos, salidas, actualizarProductos, actualizarSalidas } = useInventario();
+  const [productos, setProductos] = useState([]);
+  const [salidas, setSalidas] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    producto: "",
+    productoId: "",
     cantidad: "",
     motivo: "",
     responsable: "",
@@ -49,19 +41,42 @@ function Salidas() {
     busqueda: ""
   });
 
-  // Inicializar salidas mock si no hay datos
-  useState(function () {
-    const salidasGuardadas = localStorage.getItem("salidas_app");
-    if (salidasGuardadas == null && salidas.length === 0) {
-      actualizarSalidas(salidasMock);
+  const cargarDatos = useCallback(async function () {
+    try {
+      const [productosResponse, salidasResponse] = await Promise.all([
+        fetch(`${API_URL}/productos`),
+        fetch(`${API_URL}/salidas`)
+      ]);
+
+      if (!productosResponse.ok || !salidasResponse.ok) {
+        throw new Error("Error cargando datos");
+      }
+
+      const productosData = await productosResponse.json();
+      const salidasData = await salidasResponse.json();
+
+      setProductos(productosData);
+      setSalidas(salidasData);
+    } catch {
+      showAlert("No se pudieron cargar las salidas desde el backend.", "error");
     }
-  });
+  }, [showAlert]);
+
+  useEffect(function () {
+    const timer = setTimeout(function () {
+      cargarDatos();
+    }, 0);
+
+    return function () {
+      clearTimeout(timer);
+    };
+  }, [cargarDatos]);
 
   const productoSeleccionado = useMemo(function () {
     return productos.find(function (producto) {
-      return producto.nombre === formData.producto;
+      return String(producto.id) === String(formData.productoId);
     });
-  }, [productos, formData.producto]);
+  }, [productos, formData.productoId]);
 
   const totalCantidadSalidas = useMemo(function () {
     return salidas.reduce(function (acc, salida) {
@@ -69,7 +84,6 @@ function Salidas() {
     }, 0);
   }, [salidas]);
 
-  // M2: Usa función centralizada de stock crítico
   const stockCritico = useMemo(function () {
     return contarCriticos(productos);
   }, [productos]);
@@ -88,11 +102,11 @@ function Salidas() {
     });
   }
 
-  function registrarSalida(e) {
+  async function registrarSalida(e) {
     e.preventDefault();
 
     if (
-      formData.producto === "" ||
+      formData.productoId === "" ||
       formData.cantidad === "" ||
       formData.motivo === "" ||
       formData.responsable === "" ||
@@ -105,12 +119,12 @@ function Salidas() {
     const cantidadSolicitada = Number(formData.cantidad);
 
     if (Number.isNaN(cantidadSolicitada) || cantidadSolicitada <= 0) {
-      showAlert("La cantidad debe ser un número mayor a 0.", "error");
+      showAlert("La cantidad debe ser un numero mayor a 0.", "error");
       return;
     }
 
     if (!productoSeleccionado) {
-      showAlert("Selecciona un producto válido.", "error");
+      showAlert("Selecciona un producto valido.", "error");
       return;
     }
 
@@ -119,57 +133,63 @@ function Salidas() {
       return;
     }
 
-    const inventarioActualizado = productos.map(function (producto) {
-      if (producto.nombre === formData.producto) {
-        return {
-          ...producto,
-          stock: Number(producto.stock) - cantidadSolicitada
-        };
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${API_URL}/salidas`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          productoId: Number(formData.productoId),
+          cantidad: cantidadSolicitada,
+          motivo: formData.motivo,
+          responsable: formData.responsable,
+          fecha: formData.fecha,
+          observacion: formData.observacion
+        })
+      });
+
+      const data = await response.json().catch(function () {
+        return {};
+      });
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error al registrar la salida");
       }
-      return producto;
-    });
 
-    const nuevaSalida = {
-      id: crypto.randomUUID(),
-      producto: formData.producto,
-      cantidad: cantidadSolicitada,
-      motivo: formData.motivo,
-      responsable: formData.responsable,
-      fecha: formData.fecha,
-      observacion: formData.observacion
-    };
+      setFormData({
+        productoId: "",
+        cantidad: "",
+        motivo: "",
+        responsable: "",
+        fecha: "",
+        observacion: ""
+      });
 
-    const historialActualizado = [...salidas, nuevaSalida];
-
-    // A1: Actualiza a través del context para sincronización entre módulos
-    actualizarProductos(inventarioActualizado);
-    actualizarSalidas(historialActualizado);
-
-    setFormData({
-      producto: "",
-      cantidad: "",
-      motivo: "",
-      responsable: "",
-      fecha: "",
-      observacion: ""
-    });
-
-    showAlert("Salida registrada correctamente.", "success");
+      await cargarDatos();
+      showAlert("Salida registrada correctamente.", "success");
+    } catch (error) {
+      showAlert(error.message, "error");
+    } finally {
+      setLoading(false);
+    }
   }
 
   const salidasFiltradas = useMemo(function () {
     return salidas.filter(function (salida) {
-      const cumpleBusqueda = salida.producto
+      const nombreProducto = obtenerNombreProducto(salida);
+      const fechaSalida = formatearFecha(salida.fecha);
+
+      const cumpleBusqueda = nombreProducto
         .toLowerCase()
         .includes(filtros.busqueda.toLowerCase());
 
       const cumpleMotivo = filtros.motivo === "Todos" || salida.motivo === filtros.motivo;
-
-      const cumpleProducto = filtros.producto === "Todos" || salida.producto === filtros.producto;
-
-      const cumpleFechaInicio = filtros.fechaInicio === "" || salida.fecha >= filtros.fechaInicio;
-
-      const cumpleFechaFin = filtros.fechaFin === "" || salida.fecha <= filtros.fechaFin;
+      const cumpleProducto = filtros.producto === "Todos" || nombreProducto === filtros.producto;
+      const cumpleFechaInicio = filtros.fechaInicio === "" || fechaSalida >= filtros.fechaInicio;
+      const cumpleFechaFin = filtros.fechaFin === "" || fechaSalida <= filtros.fechaFin;
 
       return (
         cumpleBusqueda &&
@@ -202,7 +222,7 @@ function Salidas() {
 
           <article className="rounded-xl border border-slate-200 bg-white px-4 py-3">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">Stock Crítico</p>
+              <p className="text-xs uppercase tracking-wider font-semibold text-slate-500">Stock Critico</p>
               <AlertTriangle className="w-4 h-4 text-rose-500" />
             </div>
             <p className="mt-1 text-2xl font-bold text-slate-800">{stockCritico}</p>
@@ -213,15 +233,15 @@ function Salidas() {
           <div>
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Producto</label>
             <select
-              name="producto"
-              value={formData.producto}
+              name="productoId"
+              value={formData.productoId}
               onChange={handleFormChange}
               className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm outline-none focus:border-rose-500 focus:bg-white transition-all"
             >
               <option value="">Seleccionar producto</option>
               {productos.map(function (producto) {
                 return (
-                  <option key={producto.id} value={producto.nombre}>
+                  <option key={producto.id} value={producto.id}>
                     {producto.nombre} (stock: {producto.stock})
                   </option>
                 );
@@ -283,7 +303,7 @@ function Salidas() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Observación</label>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Observacion</label>
             <input
               type="text"
               name="observacion"
@@ -296,10 +316,11 @@ function Salidas() {
           <div className="md:col-span-2 flex justify-end">
             <button
               type="submit"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 text-white hover:bg-rose-700 font-semibold shadow-md hover:shadow-rose-500/20 transition-all cursor-pointer"
+              disabled={loading}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 text-white hover:bg-rose-700 font-semibold shadow-md hover:shadow-rose-500/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Plus className="w-4 h-4" />
-              Registrar Salida
+              {loading ? "Registrando..." : "Registrar Salida"}
             </button>
           </div>
         </form>
@@ -367,7 +388,7 @@ function Salidas() {
                 <th className="px-6 py-3 text-left">Motivo</th>
                 <th className="px-6 py-3 text-left">Responsable</th>
                 <th className="px-6 py-3 text-left">Fecha</th>
-                <th className="px-6 py-3 text-left">Observación</th>
+                <th className="px-6 py-3 text-left">Observacion</th>
               </tr>
             </thead>
 
@@ -382,7 +403,7 @@ function Salidas() {
                 salidasFiltradas.map(function (salida) {
                   return (
                     <tr key={salida.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-3.5 text-slate-700 font-medium">{salida.producto}</td>
+                      <td className="px-6 py-3.5 text-slate-700 font-medium">{obtenerNombreProducto(salida)}</td>
                       <td className="px-6 py-3.5">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-rose-100 text-rose-700 font-semibold">
                           -{salida.cantidad}
@@ -390,7 +411,7 @@ function Salidas() {
                       </td>
                       <td className="px-6 py-3.5 text-slate-600">{salida.motivo}</td>
                       <td className="px-6 py-3.5 text-slate-600">{salida.responsable}</td>
-                      <td className="px-6 py-3.5 text-slate-500">{salida.fecha}</td>
+                      <td className="px-6 py-3.5 text-slate-500">{formatearFecha(salida.fecha)}</td>
                       <td className="px-6 py-3.5 text-slate-500">{salida.observacion || "-"}</td>
                     </tr>
                   );
