@@ -122,3 +122,95 @@ app.delete("/productos/:id", async (req, res) => {
         res.status(500).json({ error: "Error al eliminar el producto" })
     }
 })
+
+// ---------- RF-14: Historial de Entradas ----------
+app.get("/entradas", async (req, res) => {
+    try {
+
+        const entradas = await prisma.entradas.findMany({
+            include: {
+                producto: true
+            },
+            orderBy: {
+                id: "desc"
+            }
+        })
+
+        res.json(entradas)
+
+    } catch (error) {
+
+        res.status(500).json({
+            error: "Error al obtener las entradas"
+        })
+
+    }
+})
+
+// ---------- RF-15: Registrar Entrada ----------
+app.post("/entradas", async (req, res) => {
+    try {
+
+        const {
+            cantidad,
+            proveedor,
+            responsable,
+            fecha,
+            observacion,
+            productoId
+        } = req.body
+
+        if (
+            cantidad == null ||
+            !proveedor ||
+            !responsable ||
+            !fecha ||
+            productoId == null
+        ) {
+            return res.status(400).json({
+                error: "Todos los campos obligatorios deben ser completados"
+            })
+        }
+
+        const producto = await prisma.producto.findUnique({
+            where: {
+                id: Number(productoId)
+            }
+        })
+
+        if (!producto) {
+            return res.status(404).json({
+                error: "Producto no encontrado"
+            })
+        }
+
+        const nuevaEntrada = await prisma.entradas.create({
+            data: {
+                cantidad: Number(cantidad),
+                proveedor,
+                responsable,
+                fecha: new Date(fecha),
+                observacion,
+                productoId: Number(productoId)
+            }
+        })
+
+        await prisma.producto.update({
+            where: {
+                id: Number(productoId)
+            },
+            data: {
+                stock: producto.stock + Number(cantidad)
+            }
+        })
+
+        res.status(201).json(nuevaEntrada)
+
+    } catch (error) {
+
+        res.status(500).json({
+            error: "Error al registrar la entrada"
+        })
+
+    }
+})
