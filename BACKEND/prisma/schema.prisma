@@ -27,4 +27,19 @@ model Producto {
   stock       Int
   stockMinimo Int
   unidad      String
+  entradas    Entradas[]
 }
+
+model Entradas {
+
+  id          Int    @id @default(autoincrement())
+  cantidad    Int
+  proveedor   String
+  responsable String
+  fecha       DateTime
+  observacion String?
+  productoId  Int
+  producto    Producto @relation(fields: [productoId], references: [id])
+
+}
+
