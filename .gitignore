@@ -6,7 +6,7 @@ FRONTEND/yarn-debug.log*
 FRONTEND/yarn-error.log*
 FRONTEND/pnpm-debug.log*
 FRONTEND/lerna-debug.log*
-
+node_modules/
 FRONTEND/node_modules
 FRONTEND/dist
 FRONTEND/dist-ssr

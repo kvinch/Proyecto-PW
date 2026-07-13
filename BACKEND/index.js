@@ -13,25 +13,6 @@ app.use(bodyParser.urlencoded({
     extended: true
 }))
 
-const jugadores = [
-    { id: 1, name: "Emiliano Martínez", age: 31, nat: "ARG", position: "Arquero", height: 195, weight: 87, pac: 9, tec: 11, dri: 7, fin: 6, pas: 12 },
-
-    { id: 2, name: "Alisson Becker", age: 33, nat: "BRA", position: "Arquero", height: 193, weight: 91, pac: 8, tec: 12, dri: 8, fin: 5, pas: 13 },
-
-    { id: 3, name: "Virgil van Dijk", age: 34, nat: "NED", position: "Defensa", height: 195, weight: 92, pac: 14, tec: 14, dri: 12, fin: 10, pas: 15 },
-
-    { id: 4, name: "Kevin De Bruyne", age: 35, nat: "BEL", position: "Mediocampista", height: 181, weight: 75, pac: 15, tec: 19, dri: 18, fin: 17, pas: 20 },
-
-    { id: 5, name: "Kylian Mbappé", age: 27, nat: "FRA", position: "Delantero", height: 178, weight: 73, pac: 20, tec: 18, dri: 20, fin: 19, pas: 16 },
-
-    { id: 6, name: "Erling Haaland", age: 26, nat: "NOR", position: "Delantero", height: 194, weight: 88, pac: 18, tec: 16, dri: 15, fin: 20, pas: 13 }
-]
-let nextId = 7;
-
-
-
-
-
 console.log("DB_URL", process.env["DATABASE_URL"])
 
 
@@ -43,4 +24,101 @@ const prisma = new PrismaClient({ adapter })
 
 app.listen(PORT, () => {
     console.log("Servidor iniciado")
+})
+// ---------- RF-12: Consulta de Inventario con Filtros ----------
+app.get("/productos", async (req, res) => {
+    try {
+        const { nombre, categoria } = req.query
+        const productos = await prisma.producto.findMany({
+            where: {
+                ...(nombre ? { nombre: { contains: nombre, mode: "insensitive" } } : {}),
+                ...(categoria ? { categoria } : {})
+            },
+            orderBy: { nombre: "asc" }
+        })
+        res.json(productos)
+    } catch (error) {
+        res.status(500).json({ error: "Error al obtener los productos" })
+    }
+})
+
+app.get("/productos/:id", async (req, res) => {
+    try {
+        const producto = await prisma.producto.findUnique({
+            where: { id: Number(req.params.id) }
+        })
+        if (!producto) return res.status(404).json({ error: "Producto no encontrado" })
+        res.json(producto)
+    } catch (error) {
+        res.status(500).json({ error: "Error al obtener el producto" })
+    }
+})
+
+// ---------- RF-10: Registro de Equipos y Materiales ----------
+app.post("/productos", async (req, res) => {
+    try {
+        const { nombre, categoria, stock, stockMinimo, unidad } = req.body
+
+        if (!nombre || !categoria || stock == null || stockMinimo == null || !unidad) {
+            return res.status(400).json({ error: "Todos los campos son obligatorios" })
+        }
+        if (Number(stock) < 0 || Number(stockMinimo) < 0) {
+            return res.status(400).json({ error: "El stock y el stock mínimo deben ser positivos" })
+        }
+
+        const nuevoProducto = await prisma.producto.create({
+            data: {
+                nombre: nombre.trim(),
+                categoria,
+                stock: Number(stock),
+                stockMinimo: Number(stockMinimo),
+                unidad
+            }
+        })
+        res.status(201).json(nuevoProducto)
+    } catch (error) {
+        if (error.code === "P2002") {
+            return res.status(409).json({ error: `Ya existe un producto con el nombre "${req.body.nombre}"` })
+        }
+        res.status(500).json({ error: "Error al crear el producto" })
+    }
+})
+
+// ---------- RF-11: Edición de Productos ----------
+app.put("/productos/:id", async (req, res) => {
+    try {
+        const { nombre, categoria, stock, stockMinimo, unidad } = req.body
+
+        const productoActualizado = await prisma.producto.update({
+            where: { id: Number(req.params.id) },
+            data: {
+                ...(nombre ? { nombre: nombre.trim() } : {}),
+                ...(categoria ? { categoria } : {}),
+                ...(stock != null ? { stock: Number(stock) } : {}),
+                ...(stockMinimo != null ? { stockMinimo: Number(stockMinimo) } : {}),
+                ...(unidad ? { unidad } : {})
+            }
+        })
+        res.json(productoActualizado)
+    } catch (error) {
+        if (error.code === "P2025") {
+            return res.status(404).json({ error: "Producto no encontrado" })
+        }
+        if (error.code === "P2002") {
+            return res.status(409).json({ error: `Ya existe un producto con el nombre "${req.body.nombre}"` })
+        }
+        res.status(500).json({ error: "Error al actualizar el producto" })
+    }
+})
+
+app.delete("/productos/:id", async (req, res) => {
+    try {
+        await prisma.producto.delete({ where: { id: Number(req.params.id) } })
+        res.status(204).send()
+    } catch (error) {
+        if (error.code === "P2025") {
+            return res.status(404).json({ error: "Producto no encontrado" })
+        }
+        res.status(500).json({ error: "Error al eliminar el producto" })
+    }
 })
