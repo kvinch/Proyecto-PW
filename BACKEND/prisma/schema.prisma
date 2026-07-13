@@ -19,3 +19,12 @@ model User {
   estado String
   contrasena String
 }
+
+model Producto {
+  id          Int    @id @default(autoincrement())
+  nombre      String @unique
+  categoria   String
+  stock       Int
+  stockMinimo Int
+  unidad      String
+}
