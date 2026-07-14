@@ -73,7 +73,7 @@ const inventarioService = () => {
         return data
     }
 
-    const addEntradas = async (entrada) => {
+    const addEntrada = async (entrada) => {
 
     const resp = await fetch(`${API_URL}/entradas`, {
         method: "POST",
@@ -106,7 +106,7 @@ const inventarioService = () => {
         updateProducto,
         deleteProducto,
         getEntradas,
-        addEntradas,
+        addEntrada,
         getSalidas
     }
 }
