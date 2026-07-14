@@ -25,3 +25,4 @@ FRONTEND/*.local
 
 BACKEND/node_modules
 BACKEND/.env
+BACKEND/test.http
