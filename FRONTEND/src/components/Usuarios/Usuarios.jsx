@@ -7,7 +7,7 @@ import useUsuarios from '../../hooks/useUsuarios';
 
 function Usuarios() {
   const navigate = useNavigate();
-  const { usuarios, getUsuarios } = useUsuarios();
+  const { usuarios, getUsuarios, deleteUsuario, toggleEstadoUsuario } = useUsuarios();
 
   const [busqueda, setBusqueda] = useState('');
   const [rolFilter, setRolFilter] = useState('Todos');
@@ -35,10 +35,13 @@ function Usuarios() {
 
   // Confirma la eliminación y cierra el modal
   async function handleConfirmDelete() {
-    // TODO: llamar al endpoint DELETE cuando esté disponible en el backend
-    // Por ahora solo cierra el modal
-    setUsuarioAEliminar(null);
-    getUsuarios(); // Refresca la lista
+    if (usuarioAEliminar) {
+      const resp = await deleteUsuario(usuarioAEliminar.id);
+      if (!resp?.error) {
+        setUsuarioAEliminar(null);
+        getUsuarios(); // Refresca la lista
+      }
+    }
   }
 
   // Cierra el modal sin eliminar
@@ -167,8 +170,11 @@ function Usuarios() {
                       usuario={usuario.usuario}
                       rol={usuario.rol}
                       estado={usuario.estado}
-                      onToggle={function() {
-                        // TODO: llamar endpoint toggle cuando esté disponible
+                      onToggle={async function() {
+                        const resp = await toggleEstadoUsuario(usuario.id, usuario.estado);
+                        if (!resp?.error) {
+                          getUsuarios(); // Refresca la lista
+                        }
                       }}
                       onEdit={function() {
                         navigate("/usuarios/editar/" + usuario.id);
