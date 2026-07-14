@@ -4,7 +4,7 @@ import TablaEntradas from "./TablaEntradas";
 import { useInventario } from "../../context/InventarioContext";
 import { useAlert } from "../../context/AlertContext";
 import { contarCriticos } from "../../utils/inventario";
-import inventarioService from "../../services/InventarioService";
+import inventarioService from "../../services/inventarioService";
 
 function Entradas() {
   const service = inventarioService();
