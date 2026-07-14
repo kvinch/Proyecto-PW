@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import useUsuarios from '../../hooks/useUsuarios';
 import FondoParticulas from "./FondoParticulas"
-import { User, Lock, Boxes, AlertTriangle, Eye, EyeOff } from "lucide-react"
+import { User, Lock, Boxes, AlertTriangle } from "lucide-react"
 import logo from '../../assets/LOGO.png';
 
 const Login = () => {
   const { login } = useAuth();
+  const { login: loginBackend } = useUsuarios();
   const navigate = useNavigate();
 
   // Estados locales para el formulario y control visual
@@ -15,7 +17,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
@@ -27,17 +29,22 @@ const Login = () => {
 
     setLoading(true);
 
-    // Micro-animación de carga (600ms) para mejorar la estética interactiva
-    setTimeout(() => {
-      const res = login(usuario, contrasena);
-      setLoading(false);
-      
+    try {
+      // Llama al backend y obtiene la respuesta
+      const respuesta = await loginBackend({ usuario: usuario.trim(), contrasena });
+      // Pasa la respuesta al contexto para guardar la sesión
+      const res = login(respuesta);
+
       if (res.success) {
         navigate('/Inicio');
       } else {
         setError(res.error);
       }
-    }, 600);
+    } catch (err) {
+      setError('Error de conexión con el servidor.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

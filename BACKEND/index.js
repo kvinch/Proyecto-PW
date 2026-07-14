@@ -22,7 +22,10 @@ console.log("DB_URL", process.env["DATABASE_URL"])
 
 
 const pool = new Pool({
-    connectionString: process.env["DATABASE_URL"]
+    connectionString: process.env["DATABASE_URL"],
+    ssl: {
+        rejectUnauthorized: false  // Necesario para Render (certificado autofirmado)
+    }
 })
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })

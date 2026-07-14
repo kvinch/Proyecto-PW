@@ -13,10 +13,11 @@ datasource db {
 }
 
 model User {
-  id Int @id @default(autoincrement())
-  usuario String @unique
-  rol String
-  estado String
+  id         Int    @id @default(autoincrement())
+  nombre     String
+  usuario    String @unique
+  rol        String
+  estado     String
   contrasena String
 }
 
