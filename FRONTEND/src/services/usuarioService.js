@@ -3,13 +3,13 @@ const RUTA_BACKEND = "https://proyecto-pw-g7fa.onrender.com"
 const usuarioService = () => {
 
     const getUsuarios = async () => {
-        const resp = await fetch(`${RUTA_BACKEND}/api/users`)
+        const resp = await fetch(`${RUTA_BACKEND}/users`)
         const data = await resp.json()
         return data
     }
 
     const addUsuario = async (usuario) => {
-        const resp = await fetch(`${RUTA_BACKEND}/api/users`, {
+        const resp = await fetch(`${RUTA_BACKEND}/users`, {
             method: "post",
             body: JSON.stringify(usuario),
             headers: {
@@ -25,7 +25,7 @@ const usuarioService = () => {
     }
 
     const updateUsuario = async (id, usuario) => {
-        const resp = await fetch(`${RUTA_BACKEND}/api/users/${id}`, {
+        const resp = await fetch(`${RUTA_BACKEND}/users/${id}`, {
             method: "put",
             body: JSON.stringify(usuario),
             headers: {
@@ -41,9 +41,38 @@ const usuarioService = () => {
     }
 
     const login = async (credenciales) => {
-        const resp = await fetch(`${RUTA_BACKEND}/api/login`, {
+        const resp = await fetch(`${RUTA_BACKEND}/login`, {
             method: "post",
             body: JSON.stringify(credenciales),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
+
+        if (!resp.ok) {
+            console.error("Hubo error en la conexion")
+            return await resp.json()
+        }
+        return await resp.json()
+    }
+
+    const deleteUsuario = async (id) => {
+        const resp = await fetch(`${RUTA_BACKEND}/users/${id}`, {
+            method: "delete"
+        })
+
+        if (!resp.ok) {
+            console.error("Hubo error en la conexion")
+            return await resp.json()
+        }
+        return await resp.json()
+    }
+
+    const toggleEstadoUsuario = async (id, estadoActual) => {
+        const nuevoEstado = estadoActual === "Activo" ? "Inactivo" : "Activo"
+        const resp = await fetch(`${RUTA_BACKEND}/users/${id}`, {
+            method: "put",
+            body: JSON.stringify({ estado: nuevoEstado }),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -60,6 +89,8 @@ const usuarioService = () => {
         getUsuarios,
         addUsuario,
         updateUsuario,
+        deleteUsuario,
+        toggleEstadoUsuario,
         login
     }
 }

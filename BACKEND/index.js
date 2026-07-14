@@ -134,6 +134,34 @@ app.put("/users/:id", async (req, res) => {
     }
 });
 
+app.delete("/users/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const userId = parseInt(id, 10);
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: "ID de usuario inválido" });
+        }
+
+        const existingUser = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!existingUser) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        await prisma.user.delete({
+            where: { id: userId }
+        });
+
+        res.json({ success: true, message: "Usuario eliminado correctamente" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al eliminar usuario" });
+    }
+});
+
 app.post("/login", async (req, res) => {
     try {
         const { usuario, contrasena } = req.body;

@@ -37,11 +37,31 @@ const useUsuarios = () => {
         return data
     }
 
+    const deleteUsuario = async (id) => {
+        const service = usuarioService()
+        const data = await service.deleteUsuario(id)
+        if (data.error) {
+            console.error("Error: ", data.error)
+        }
+        return data
+    }
+
+    const toggleEstadoUsuario = async (id, estadoActual) => {
+        const service = usuarioService()
+        const data = await service.toggleEstadoUsuario(id, estadoActual)
+        if (data.error) {
+            console.error("Error: ", data.error)
+        }
+        return data
+    }
+
     return {
         usuarios,
         getUsuarios,
         addUsuario,
         updateUsuario,
+        deleteUsuario,
+        toggleEstadoUsuario,
         login
     }
 }
