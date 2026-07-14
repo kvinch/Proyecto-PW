@@ -2,106 +2,82 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { UserPlus, ArrowLeft, Save } from "lucide-react";
 import { useAlert } from "../../context/AlertContext.jsx";
+import useUsuarios from "../../hooks/useUsuarios.js";
 
 function RegistroUsuario() {
   const navigate = useNavigate();
-  const { id } = useParams(); // Obtenemos el ID de la URL si estamos editando
+  const { id } = useParams();
   const { showAlert } = useAlert();
+  const { getUsuarios, addUsuario, updateUsuario } = useUsuarios();
 
-  // Declaración de estados locales — A3: campo unificado a "contrasena" (sin tilde)
   const [nombre, setNombre] = useState("");
   const [usuario, setUsuario] = useState("");
   const [contrasena, setContrasena] = useState("");
   const [rol, setRol] = useState("Operario");
   const [estado, setEstado] = useState("Activo");
+  const [cargando, setCargando] = useState(false);
 
-  // Si hay un ID en la URL, cargamos los datos del usuario correspondiente para editarlos
+  // Si hay un ID en la URL, cargamos los datos del usuario desde el backend para editarlos
   useEffect(function() {
     if (id != null) {
-      const listaUsuariosStr = localStorage.getItem("usuarios_app");
-      if (listaUsuariosStr != null) {
-        const listaUsuarios = JSON.parse(listaUsuariosStr);
-        const usuarioEncontrado = listaUsuarios.find(function(u) {
+      async function cargarUsuario() {
+        const { usuarios } = await getUsuarios();
+        const lista = Array.isArray(usuarios) ? usuarios : [];
+        const encontrado = lista.find(function(u) {
           return u.id === Number(id);
         });
-        
-        if (usuarioEncontrado != null) {
-          setNombre(usuarioEncontrado.nombre);
-          setUsuario(usuarioEncontrado.usuario);
-          setContrasena(usuarioEncontrado.contrasena || "");
-          setRol(usuarioEncontrado.rol);
-          setEstado(usuarioEncontrado.estado);
+        if (encontrado != null) {
+          setNombre(encontrado.nombre);
+          setUsuario(encontrado.usuario);
+          setRol(encontrado.rol);
+          setEstado(encontrado.estado);
         }
       }
+      cargarUsuario();
     }
   }, [id]);
 
-  // M3: handler de submit en el form para que Enter también dispare el guardado
-  function guardarUsuario(e) {
+  async function guardarUsuario(e) {
     e.preventDefault();
 
-    if (nombre.trim() === "" || usuario.trim() === "" || contrasena.trim() === "") {
-      showAlert("Por favor, completa todos los campos.", "warning");
+    if (nombre.trim() === "" || usuario.trim() === "") {
+      showAlert("Por favor, completa todos los campos obligatorios.", "warning");
       return;
     }
 
-    const listaUsuariosStr = localStorage.getItem("usuarios_app");
-    let listaUsuarios = [];
-    
-    if (listaUsuariosStr != null) {
-      listaUsuarios = JSON.parse(listaUsuariosStr);
+    if (id == null && contrasena.trim() === "") {
+      showAlert("La contraseña es obligatoria al crear un usuario.", "warning");
+      return;
     }
 
-    if (id != null) {
-      // Modo edición del usuario
-      const existeOtro = listaUsuarios.some(function(u) {
-        return u.usuario === usuario.trim().toLowerCase() && u.id !== Number(id);
-      });
+    setCargando(true);
 
-      if (existeOtro) {
-        showAlert("El nombre de usuario @" + usuario + " ya está en uso por otro usuario.", "error");
-        return;
-      }
+    try {
+      let resultado;
 
-      listaUsuarios = listaUsuarios.map(function(u) {
-        if (u.id === Number(id)) {
-          return {
-            ...u,
-            nombre: nombre.trim(),
-            usuario: usuario.trim().toLowerCase(),
-            contrasena: contrasena.trim(),
-            rol: rol,
-            estado: estado
-          };
+      if (id != null) {
+        // Modo edición — solo enviamos contrasena si se llenó el campo
+        const datos = { nombre, usuario, rol, estado };
+        if (contrasena.trim() !== "") {
+          datos.contrasena = contrasena;
         }
-        return u;
-      });
+        resultado = await updateUsuario(id, datos);
+      } else {
+        // Modo creación
+        resultado = await addUsuario({ nombre, usuario, contrasena, rol, estado });
+      }
 
-    } else {
-      // Modo creación
-      const existe = listaUsuarios.some(function(u) {
-        return u.usuario === usuario.trim().toLowerCase();
-      });
-
-      if (existe) {
-        showAlert("El nombre de usuario @" + usuario + " ya existe.", "error");
+      if (resultado?.error) {
+        showAlert(resultado.error, "error");
         return;
       }
 
-      listaUsuarios.push({
-        id: crypto.randomUUID(),
-        nombre: nombre.trim(),
-        usuario: usuario.trim().toLowerCase(),
-        contrasena: contrasena.trim(),
-        rol: rol,
-        estado: estado
-      });
+      navigate("/usuarios");
+    } catch (err) {
+      showAlert("Ocurrió un error al guardar. Intenta de nuevo.", "error");
+    } finally {
+      setCargando(false);
     }
-    
-    localStorage.setItem("usuarios_app", JSON.stringify(listaUsuarios));
-
-    // Redirige de vuelta a la lista de usuarios
-    navigate("/usuarios");
   }
 
   return (
@@ -123,7 +99,6 @@ function RegistroUsuario() {
         </div>
       </div>
 
-      {/* M3: onSubmit en el form para que Enter dispare guardarUsuario */}
       <form className="p-6 space-y-5" onSubmit={guardarUsuario}>
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
@@ -134,9 +109,7 @@ function RegistroUsuario() {
             type="text"
             placeholder="Ej. Juan Pérez"
             value={nombre}
-            onChange={function(e) {
-              setNombre(e.currentTarget.value);
-            }}
+            onChange={function(e) { setNombre(e.currentTarget.value); }}
           />
         </div>
 
@@ -149,24 +122,20 @@ function RegistroUsuario() {
             type="text"
             placeholder="Ej. jperez"
             value={usuario}
-            onChange={function(e) {
-              setUsuario(e.currentTarget.value);
-            }}
+            onChange={function(e) { setUsuario(e.currentTarget.value); }}
           />
         </div>
 
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-            Contraseña
+            Contraseña {id != null && <span className="text-slate-400 normal-case font-normal">(dejar vacío para no cambiar)</span>}
           </label>
           <input
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
             type="password"
-            placeholder="******"
+            placeholder={id != null ? "••••••  (sin cambios)" : "******"}
             value={contrasena}
-            onChange={function(e) {
-              setContrasena(e.currentTarget.value);
-            }}
+            onChange={function(e) { setContrasena(e.currentTarget.value); }}
           />
         </div>
 
@@ -177,9 +146,7 @@ function RegistroUsuario() {
           <select
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
             value={rol}
-            onChange={function(e) {
-              setRol(e.currentTarget.value);
-            }}
+            onChange={function(e) { setRol(e.currentTarget.value); }}
           >
             <option value="Administrador">Administrador</option>
             <option value="Supervisor">Supervisor</option>
@@ -194,9 +161,7 @@ function RegistroUsuario() {
           <select
             className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50/50 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all duration-200"
             value={estado}
-            onChange={function(e) {
-              setEstado(e.currentTarget.value);
-            }}
+            onChange={function(e) { setEstado(e.currentTarget.value); }}
           >
             <option value="Activo">Activo</option>
             <option value="Inactivo">Inactivo</option>
@@ -212,14 +177,23 @@ function RegistroUsuario() {
           >
             Cancelar
           </button>
-          
-          {/* M3: type="submit" para que Enter funcione */}
+
           <button
             type="submit"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-sm text-white font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-blue-500/20 active:scale-[0.98] cursor-pointer"
+            disabled={cargando}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-sm text-white font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-blue-500/20 active:scale-[0.98] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <Save className="w-4 h-4" />
-            {id != null ? "Guardar Cambios" : "Guardar"}
+            {cargando ? (
+              <>
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                {id != null ? "Guardar Cambios" : "Guardar"}
+              </>
+            )}
           </button>
         </div>
       </form>

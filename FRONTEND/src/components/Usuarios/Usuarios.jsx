@@ -2,61 +2,24 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, RefreshCw, Users } from 'lucide-react';
 import ItemUsuario from './ItemUsuario';
-import seedUsers from '../../data/seedUsers';
+import DeleteUsuarioModal from './DeleteUsuarioModal';
+import useUsuarios from '../../hooks/useUsuarios';
 
 function Usuarios() {
   const navigate = useNavigate();
+  const { usuarios, getUsuarios } = useUsuarios();
 
-  const [usuarios, setUsuarios] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [rolFilter, setRolFilter] = useState('Todos');
   const [estadoFilter, setEstadoFilter] = useState('Todos');
 
-  // Carga inicial desde localStorage
+  // Modal de confirmación de eliminación
+  const [usuarioAEliminar, setUsuarioAEliminar] = useState(null);
+
+  // Carga inicial desde el backend
   useEffect(function() {
-    const saved = localStorage.getItem('usuarios_app');
-    if (saved != null) {
-      try {
-        setUsuarios(JSON.parse(saved));
-      } catch (e) {
-        console.error("Error al parsear localStorage", e);
-        setUsuarios(seedUsers);
-      }
-    } else {
-      setUsuarios(seedUsers);
-      localStorage.setItem('usuarios_app', JSON.stringify(seedUsers));
-    }
+    getUsuarios();
   }, []);
-
-  // Función para guardar en localStorage y actualizar estado local
-  function updateUsuariosList(newList) {
-    setUsuarios(newList);
-    localStorage.setItem('usuarios_app', JSON.stringify(newList));
-  }
-
-  // Cambiar estado de un usuario (Activo/Inactivo) al hacer click
-  function handleToggleStatus(id) {
-    const updated = usuarios.map(function(usr) {
-      if (usr.id === id) {
-        return {
-          ...usr,
-          estado: usr.estado === 'Activo' ? 'Inactivo' : 'Activo'
-        };
-      }
-      return usr;
-    });
-    updateUsuariosList(updated);
-  }
-
-  // Eliminar un usuario de la lista
-  function handleDeleteUsuario(id) {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
-      const filtered = usuarios.filter(function(usr) {
-        return usr.id !== id;
-      });
-      updateUsuariosList(filtered);
-    }
-  }
 
   // Limpiar todos los filtros aplicados
   function handleResetFilters() {
@@ -65,13 +28,30 @@ function Usuarios() {
     setEstadoFilter('Todos');
   }
 
-  // Adicional: useMemo para el filtrado de usuarios (consistencia con Salidas.jsx y Dashboard.jsx)
+  // Abre el modal de confirmación de eliminación
+  function handleDeleteClick(usuario) {
+    setUsuarioAEliminar(usuario);
+  }
+
+  // Confirma la eliminación y cierra el modal
+  async function handleConfirmDelete() {
+    // TODO: llamar al endpoint DELETE cuando esté disponible en el backend
+    // Por ahora solo cierra el modal
+    setUsuarioAEliminar(null);
+    getUsuarios(); // Refresca la lista
+  }
+
+  // Cierra el modal sin eliminar
+  function handleCancelDelete() {
+    setUsuarioAEliminar(null);
+  }
+
   const usuariosFiltrados = useMemo(function() {
     return usuarios.filter(function(usr) {
-      const matchesSearch = 
+      const matchesSearch =
         usr.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
         usr.usuario.toLowerCase().includes(busqueda.toLowerCase());
-      
+
       const matchesRol = rolFilter === 'Todos' || usr.rol === rolFilter;
       const matchesEstado = estadoFilter === 'Todos' || usr.estado === estadoFilter;
 
@@ -81,9 +61,16 @@ function Usuarios() {
 
   return (
     <div className="space-y-6">
+      {/* Modal de confirmación */}
+      <DeleteUsuarioModal
+        usuario={usuarioAEliminar}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
+
       {/* Cabecera premium y controles de filtro */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-        
+
         {/* Barra de búsqueda */}
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -142,7 +129,7 @@ function Usuarios() {
             </button>
           )}
 
-          {/* Botón de Agregar Usuario (Navega a la página de registro) */}
+          {/* Botón de Agregar Usuario */}
           <button
             type="button"
             onClick={function() {
@@ -181,13 +168,13 @@ function Usuarios() {
                       rol={usuario.rol}
                       estado={usuario.estado}
                       onToggle={function() {
-                        handleToggleStatus(usuario.id);
+                        // TODO: llamar endpoint toggle cuando esté disponible
                       }}
                       onEdit={function() {
                         navigate("/usuarios/editar/" + usuario.id);
                       }}
                       onDelete={function() {
-                        handleDeleteUsuario(usuario.id);
+                        handleDeleteClick(usuario);
                       }}
                     />
                   );
