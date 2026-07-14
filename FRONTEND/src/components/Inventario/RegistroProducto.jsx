@@ -2,11 +2,15 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Package, ArrowLeft, Save } from "lucide-react";
 import { useAlert } from "../../context/AlertContext.jsx";
+import { useInventario } from "../../context/InventarioContext.jsx";
+
+const API_URL = "http://localhost:5000";
 
 function RegistroProducto() {
   const navigate = useNavigate();
   const { id } = useParams(); // Obtenemos el ID de la URL si estamos editando
   const { showAlert } = useAlert();
+  const { refrescar } = useInventario();
 
   // Declaración de estados locales del formulario
   const [nombre, setNombre] = useState("");
@@ -14,31 +18,34 @@ function RegistroProducto() {
   const [stock, setStock] = useState("");
   const [stockMinimo, setStockMinimo] = useState("");
   const [unidad, setUnidad] = useState("unidad");
+  const [loading, setLoading] = useState(false);
 
-  // Si hay un ID en la URL, cargamos los datos del producto para editarlo
+  // Si hay un ID en la URL, cargamos los datos del producto desde el backend
   useEffect(function() {
     if (id != null) {
-      const listaProductosStr = localStorage.getItem("inventario_app");
-      if (listaProductosStr != null) {
-        const listaProductos = JSON.parse(listaProductosStr);
-        // Buscamos el producto por su ID
-        const productoEncontrado = listaProductos.find(function(p) {
-          return p.id === Number(id);
+      fetch(`${API_URL}/productos/${id}`)
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error("Producto no encontrado");
+          }
+          return response.json();
+        })
+        .then(function(producto) {
+          setNombre(producto.nombre);
+          setCategoria(producto.categoria);
+          setStock(producto.stock);
+          setStockMinimo(producto.stockMinimo);
+          setUnidad(producto.unidad);
+        })
+        .catch(function(error) {
+          showAlert(error.message, "error");
+          navigate("/Inventarios");
         });
-
-        if (productoEncontrado != null) {
-          setNombre(productoEncontrado.nombre);
-          setCategoria(productoEncontrado.categoria);
-          setStock(productoEncontrado.stock);
-          setStockMinimo(productoEncontrado.stockMinimo);
-          setUnidad(productoEncontrado.unidad);
-        }
-      }
     }
   }, [id]);
 
   // Función guardar con soporte para creación y edición (RF-10 y RF-11)
-  function guardarProducto() {
+  async function guardarProducto() {
     // Validación de campos obligatorios
     if (nombre.trim() === "" || stock === "" || stockMinimo === "") {
       showAlert("Por favor, completa todos los campos.", "warning");
@@ -54,67 +61,51 @@ function RegistroProducto() {
       return;
     }
 
-    const listaProductosStr = localStorage.getItem("inventario_app");
-    let listaProductos = [];
+    try {
+      setLoading(true);
 
-    if (listaProductosStr != null) {
-      listaProductos = JSON.parse(listaProductosStr);
-    }
-
-    if (id != null) {
-      // Modo edición (RF-11): actualizamos el producto existente
-
-      // Verificar si el nombre ya está tomado por OTRO producto
-      const existeOtro = listaProductos.some(function(p) {
-        return p.nombre.toLowerCase() === nombre.trim().toLowerCase() && p.id !== Number(id);
-      });
-
-      if (existeOtro) {
-        showAlert("Ya existe un producto con el nombre \"" + nombre + "\".", "error");
-        return;
-      }
-
-      // Mapeamos para actualizar los datos del producto modificado
-      listaProductos = listaProductos.map(function(p) {
-        if (p.id === Number(id)) {
-          return {
-            ...p,
-            nombre: nombre.trim(),
-            categoria: categoria,
-            stock: stockNum,
-            stockMinimo: stockMinimoNum,
-            unidad: unidad
-          };
-        }
-        return p;
-      });
-
-    } else {
-      // Modo creación (RF-10): agregamos un nuevo producto
-
-      const existe = listaProductos.some(function(p) {
-        return p.nombre.toLowerCase() === nombre.trim().toLowerCase();
-      });
-
-      if (existe) {
-        showAlert("Ya existe un producto con el nombre \"" + nombre + "\".", "error");
-        return;
-      }
-
-      listaProductos.push({
-        id: crypto.randomUUID(),
+      const body = {
         nombre: nombre.trim(),
         categoria: categoria,
         stock: stockNum,
         stockMinimo: stockMinimoNum,
         unidad: unidad
-      });
+      };
+
+      let response;
+
+      if (id != null) {
+        // Modo edición (RF-11): PUT al backend
+        response = await fetch(`${API_URL}/productos/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      } else {
+        // Modo creación (RF-10): POST al backend
+        response = await fetch(`${API_URL}/productos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      }
+
+      const data = await response.json().catch(function () { return {}; });
+
+      if (!response.ok) {
+        throw new Error(data.error || "Error al guardar el producto");
+      }
+
+      // Refrescar el contexto global para que otros módulos vean los cambios
+      refrescar();
+
+      // Redirige de vuelta al inventario
+      navigate("/Inventarios");
+    } catch (error) {
+      showAlert(error.message, "error");
+    } finally {
+      setLoading(false);
     }
-
-    localStorage.setItem("inventario_app", JSON.stringify(listaProductos));
-
-    // Redirige de vuelta al inventario
-    navigate("/Inventarios");
   }
 
   return (
@@ -239,10 +230,11 @@ function RegistroProducto() {
 
           <button
             type="submit"
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-sm text-white font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-blue-500/20 active:scale-[0.98] cursor-pointer"
+            disabled={loading}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-sm text-white font-medium hover:bg-blue-700 transition-all shadow-md hover:shadow-blue-500/20 active:scale-[0.98] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4" />
-            {id != null ? "Guardar Cambios" : "Guardar"}
+            {loading ? "Guardando..." : (id != null ? "Guardar Cambios" : "Guardar")}
           </button>
         </div>
       </form>
