@@ -12,6 +12,7 @@ export function InventarioProvider({ children }) {
   const [entradas, setEntradas] = useState([]);
   const [salidas, setSalidas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // Carga de datos desde el backend usando el service centralizado
   const cargarDatos = useCallback(async function () {
@@ -25,9 +26,15 @@ export function InventarioProvider({ children }) {
         service.getSalidas()
       ]);
 
-      setProductos(productosData);
-      setEntradas(entradasData);
-      setSalidas(salidasData);
+      if (!productosData.error) {
+        setProductos(productosData);
+      }
+      if (!entradasData.error) {
+        setEntradas(entradasData);
+      }
+      if (!salidasData.error) {
+        setSalidas(salidasData);
+      }
     } catch (error) {
       console.error("Error cargando datos del inventario:", error);
     } finally {
@@ -36,12 +43,46 @@ export function InventarioProvider({ children }) {
   }, []);
 
   useEffect(function () {
-    cargarDatos();
+    const timer = setTimeout(function () {
+      cargarDatos();
+    }, 0);
+
+    return function () {
+      clearTimeout(timer);
+    };
   }, [cargarDatos]);
 
   // Re-sincronizar desde el backend
   function refrescar() {
     cargarDatos();
+  }
+
+  async function addEntrada(entrada) {
+    const service = inventarioService();
+    setSaving(true);
+    try {
+      const respuesta = await service.addEntrada(entrada);
+      if (!respuesta.error) {
+        await cargarDatos();
+      }
+      return respuesta;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function addSalida(salida) {
+    const service = inventarioService();
+    setSaving(true);
+    try {
+      const respuesta = await service.addSalida(salida);
+      if (!respuesta.error) {
+        await cargarDatos();
+      }
+      return respuesta;
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -50,7 +91,10 @@ export function InventarioProvider({ children }) {
       entradas,
       salidas,
       loading,
-      refrescar
+      saving,
+      refrescar,
+      addEntrada,
+      addSalida
     }}>
       {children}
     </InventarioContext.Provider>

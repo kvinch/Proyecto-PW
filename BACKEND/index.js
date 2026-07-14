@@ -6,7 +6,6 @@ import { Pool } from "pg"
 import { PrismaPg } from "@prisma/adapter-pg"
 import 'dotenv/config'
 import bcrypt from "bcryptjs"
-import crypto from "crypto"
 
 
 const app = express()
@@ -343,6 +342,14 @@ app.post("/entradas", async (req, res) => {
             })
         }
 
+        const cantidadEntrada = Number(cantidad)
+
+        if (Number.isNaN(cantidadEntrada) || cantidadEntrada <= 0) {
+            return res.status(400).json({
+                error: "La cantidad debe ser mayor a 0"
+            })
+        }
+
         const producto = await prisma.producto.findUnique({
             where: {
                 id: Number(productoId)
@@ -355,24 +362,30 @@ app.post("/entradas", async (req, res) => {
             })
         }
 
-        const nuevaEntrada = await prisma.entradas.create({
-            data: {
-                cantidad: Number(cantidad),
-                proveedor,
-                responsable,
-                fecha: new Date(fecha),
-                observacion,
-                productoId: Number(productoId)
-            }
-        })
+        const nuevaEntrada = await prisma.$transaction(async (tx) => {
+            const entrada = await tx.entradas.create({
+                data: {
+                    cantidad: cantidadEntrada,
+                    proveedor,
+                    responsable,
+                    fecha: new Date(fecha),
+                    observacion,
+                    productoId: Number(productoId)
+                }
+            })
 
-        await prisma.producto.update({
-            where: {
-                id: Number(productoId)
-            },
-            data: {
-                stock: producto.stock + Number(cantidad)
-            }
+            await tx.producto.update({
+                where: {
+                    id: Number(productoId)
+                },
+                data: {
+                    stock: {
+                        increment: cantidadEntrada
+                    }
+                }
+            })
+
+            return entrada
         })
 
         res.status(201).json(nuevaEntrada)
@@ -456,28 +469,47 @@ app.post("/salidas", async (req, res) => {
             })
         }
 
-        const nuevaSalida = await prisma.salidas.create({
-            data: {
-                cantidad: cantidadSalida,
-                motivo,
-                responsable,
-                fecha: new Date(fecha),
-                observacion,
-                productoId: Number(productoId)
-            }
-        })
+        const nuevaSalida = await prisma.$transaction(async (tx) => {
+            const salida = await tx.salidas.create({
+                data: {
+                    cantidad: cantidadSalida,
+                    motivo,
+                    responsable,
+                    fecha: new Date(fecha),
+                    observacion,
+                    productoId: Number(productoId)
+                }
+            })
 
-        await prisma.producto.update({
-            where: {
-                id: Number(productoId)
-            },
-            data: {
-                stock: producto.stock - cantidadSalida
+            const stockActualizado = await tx.producto.updateMany({
+                where: {
+                    id: Number(productoId),
+                    stock: {
+                        gte: cantidadSalida
+                    }
+                },
+                data: {
+                    stock: {
+                        decrement: cantidadSalida
+                    }
+                }
+            })
+
+            if (stockActualizado.count === 0) {
+                throw new Error("STOCK_INSUFICIENTE")
             }
+
+            return salida
         })
 
         res.status(201).json(nuevaSalida)
     } catch (error) {
+        if (error.message === "STOCK_INSUFICIENTE") {
+            return res.status(400).json({
+                error: "Stock insuficiente para realizar la salida"
+            })
+        }
+
         res.status(500).json({
             error: "Error al registrar la salida"
         })

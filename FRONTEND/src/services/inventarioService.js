@@ -1,23 +1,28 @@
 const API_URL = "https://proyecto-pw-g7fa.onrender.com"
 
+async function parseResponse(resp, fallbackMessage) {
+    const data = await resp.json().catch(function () {
+        return {}
+    })
+
+    if (!resp.ok) {
+        return {
+            error: data.error || fallbackMessage
+        }
+    }
+
+    return data
+}
+
 const inventarioService = () => {
-
-    // ─── Productos ───────────────────────────────────────────────
-
     const getProductos = async () => {
         const resp = await fetch(`${API_URL}/productos`)
-        const data = await resp.json()
-        return data
+        return parseResponse(resp, "Error al obtener los productos")
     }
 
     const getProductoById = async (id) => {
         const resp = await fetch(`${API_URL}/productos/${id}`)
-
-        if (!resp.ok) {
-            console.error("Producto no encontrado")
-            return { error: "Producto no encontrado" }
-        }
-        return await resp.json()
+        return parseResponse(resp, "Producto no encontrado")
     }
 
     const addProducto = async (producto) => {
@@ -29,11 +34,7 @@ const inventarioService = () => {
             }
         })
 
-        if (!resp.ok) {
-            console.error("Hubo error al crear el producto")
-            return await resp.json()
-        }
-        return await resp.json()
+        return parseResponse(resp, "Error al crear el producto")
     }
 
     const updateProducto = async (id, producto) => {
@@ -45,11 +46,7 @@ const inventarioService = () => {
             }
         })
 
-        if (!resp.ok) {
-            console.error("Hubo error al actualizar el producto")
-            return await resp.json()
-        }
-        return await resp.json()
+        return parseResponse(resp, "Error al actualizar el producto")
     }
 
     const deleteProducto = async (id) => {
@@ -57,46 +54,45 @@ const inventarioService = () => {
             method: "DELETE"
         })
 
-        if (!resp.ok) {
-            console.error("Hubo error al eliminar el producto")
-            const data = await resp.json().catch(() => ({}))
-            return { error: data.error || "Error al eliminar el producto" }
+        if (resp.status === 204) {
+            return { success: true }
         }
-        return await resp.json().catch(() => ({ success: true }))
-    }
 
-    // ─── Entradas ────────────────────────────────────────────────
+        return parseResponse(resp, "Error al eliminar el producto")
+    }
 
     const getEntradas = async () => {
         const resp = await fetch(`${API_URL}/entradas`)
-        const data = await resp.json()
-        return data
+        return parseResponse(resp, "Error al obtener las entradas")
     }
 
-    const addEntradas = async (entrada) => {
+    const addEntrada = async (entrada) => {
+        const resp = await fetch(`${API_URL}/entradas`, {
+            method: "POST",
+            body: JSON.stringify(entrada),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
 
-    const resp = await fetch(`${API_URL}/entradas`, {
-        method: "POST",
-        body: JSON.stringify(entrada),
-        headers: {
-            "Content-Type": "application/json"
-        }
-    })
-
-    if (!resp.ok) {
-        console.error("Hubo un error al registrar la entrada")
-        return await resp.json()
+        return parseResponse(resp, "Error al registrar la entrada")
     }
-
-    return await resp.json()
-}
-
-    // ─── Salidas ─────────────────────────────────────────────────
 
     const getSalidas = async () => {
         const resp = await fetch(`${API_URL}/salidas`)
-        const data = await resp.json()
-        return data
+        return parseResponse(resp, "Error al obtener las salidas")
+    }
+
+    const addSalida = async (salida) => {
+        const resp = await fetch(`${API_URL}/salidas`, {
+            method: "POST",
+            body: JSON.stringify(salida),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
+
+        return parseResponse(resp, "Error al registrar la salida")
     }
 
     return {
@@ -106,8 +102,10 @@ const inventarioService = () => {
         updateProducto,
         deleteProducto,
         getEntradas,
-        addEntradas,
-        getSalidas
+        addEntrada,
+        addEntradas: addEntrada,
+        getSalidas,
+        addSalida
     }
 }
 

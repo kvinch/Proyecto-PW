@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowUpCircle, Plus, Search, AlertTriangle } from "lucide-react";
 import { contarCriticos } from "../../utils/inventario";
 import { useAlert } from "../../context/AlertContext";
+import { useInventario } from "../../context/InventarioContext";
 
-const API_URL = "http://localhost:5000";
 const motivosSugeridos = ["Mantenimiento", "Obra", "Merma", "Prestamo"];
 
 function formatearFecha(fecha) {
@@ -20,9 +20,7 @@ function obtenerNombreProducto(salida) {
 
 function Salidas() {
   const { showAlert } = useAlert();
-  const [productos, setProductos] = useState([]);
-  const [salidas, setSalidas] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { productos, salidas, saving, addSalida } = useInventario();
 
   const [formData, setFormData] = useState({
     productoId: "",
@@ -40,37 +38,6 @@ function Salidas() {
     producto: "Todos",
     busqueda: ""
   });
-
-  const cargarDatos = useCallback(async function () {
-    try {
-      const [productosResponse, salidasResponse] = await Promise.all([
-        fetch(`${API_URL}/productos`),
-        fetch(`${API_URL}/salidas`)
-      ]);
-
-      if (!productosResponse.ok || !salidasResponse.ok) {
-        throw new Error("Error cargando datos");
-      }
-
-      const productosData = await productosResponse.json();
-      const salidasData = await salidasResponse.json();
-
-      setProductos(productosData);
-      setSalidas(salidasData);
-    } catch {
-      showAlert("No se pudieron cargar las salidas desde el backend.", "error");
-    }
-  }, [showAlert]);
-
-  useEffect(function () {
-    const timer = setTimeout(function () {
-      cargarDatos();
-    }, 0);
-
-    return function () {
-      clearTimeout(timer);
-    };
-  }, [cargarDatos]);
 
   const productoSeleccionado = useMemo(function () {
     return productos.find(function (producto) {
@@ -134,29 +101,18 @@ function Salidas() {
     }
 
     try {
-      setLoading(true);
-
-      const response = await fetch(`${API_URL}/salidas`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          productoId: Number(formData.productoId),
-          cantidad: cantidadSolicitada,
-          motivo: formData.motivo,
-          responsable: formData.responsable,
-          fecha: formData.fecha,
-          observacion: formData.observacion
-        })
+      const data = await addSalida({
+        productoId: Number(formData.productoId),
+        cantidad: cantidadSolicitada,
+        motivo: formData.motivo,
+        responsable: formData.responsable,
+        fecha: formData.fecha,
+        observacion: formData.observacion
       });
 
-      const data = await response.json().catch(function () {
-        return {};
-      });
-
-      if (!response.ok) {
-        throw new Error(data.error || "Error al registrar la salida");
+      if (data.error) {
+        showAlert(data.error, "error");
+        return;
       }
 
       setFormData({
@@ -168,12 +124,9 @@ function Salidas() {
         observacion: ""
       });
 
-      await cargarDatos();
       showAlert("Salida registrada correctamente.", "success");
     } catch (error) {
-      showAlert(error.message, "error");
-    } finally {
-      setLoading(false);
+      showAlert(error.message || "Error al registrar la salida.", "error");
     }
   }
 
@@ -316,11 +269,11 @@ function Salidas() {
           <div className="md:col-span-2 flex justify-end">
             <button
               type="submit"
-              disabled={loading}
+              disabled={saving}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-rose-600 text-white hover:bg-rose-700 font-semibold shadow-md hover:shadow-rose-500/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Plus className="w-4 h-4" />
-              {loading ? "Registrando..." : "Registrar Salida"}
+              {saving ? "Registrando..." : "Registrar Salida"}
             </button>
           </div>
         </form>

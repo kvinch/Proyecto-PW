@@ -4,13 +4,10 @@ import TablaEntradas from "./TablaEntradas";
 import { useInventario } from "../../context/InventarioContext";
 import { useAlert } from "../../context/AlertContext";
 import { contarCriticos } from "../../utils/inventario";
-import inventarioService from "../../services/InventarioService";
 
 function Entradas() {
-  const service = inventarioService();
   const { showAlert } = useAlert();
-  // A1: Usa context compartido en lugar de localStorage aislado
-  const { productos, entradas, actualizarProductos, actualizarEntradas } = useInventario();
+  const { productos, entradas, saving, addEntrada } = useInventario();
 
   const [formData, setFormData] = useState({
     producto: "",
@@ -52,7 +49,7 @@ function Entradas() {
       return;
     }
 
-    const respuesta = await service.addEntrada({
+    const respuesta = await addEntrada({
       cantidad: Number(formData.cantidad),
       proveedor: formData.proveedor,
       responsable: formData.responsable,
@@ -61,18 +58,10 @@ function Entradas() {
       productoId: productoSeleccionado.id
     });
 
-    // Si hubo un error al registrar
     if (respuesta.error) {
       showAlert(respuesta.error, "error");
       return;
     }
-
-    // Volver a cargar los datos desde el backend
-    const nuevosProductos = await service.getProductos();
-    actualizarProductos(nuevosProductos);
-
-    const nuevasEntradas = await service.getEntradas();
-    actualizarEntradas(nuevasEntradas);
 
     showAlert("Entrada registrada correctamente.", "success");
 
@@ -204,10 +193,11 @@ function Entradas() {
           <div className="md:col-span-2 flex justify-end">
             <button
               type="submit"
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 font-semibold shadow-md hover:shadow-emerald-500/20 transition-all cursor-pointer"
+              disabled={saving}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 font-semibold shadow-md hover:shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Plus className="w-4 h-4" />
-              Registrar Entrada
+              {saving ? "Registrando..." : "Registrar Entrada"}
             </button>
           </div>
         </form>
