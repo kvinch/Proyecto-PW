@@ -1,64 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, RefreshCw, Package, AlertTriangle } from 'lucide-react';
 import ItemProducto from './ItemProducto';
 import { useInventario } from '../../context/InventarioContext';
 import { esCritico, isStockEnRiesgo, contarCriticos } from '../../utils/inventario';
+import { useAlert } from '../../context/AlertContext';
 
-// RF-10: Datos mock iniciales de inventario
-const productosMock = [
-  {
-    id: 1,
-    nombre: "Cable UTP Cat 6",
-    categoria: "Redes",
-    stock: 5,
-    stockMinimo: 10,
-    unidad: "metros"
-  },
-  {
-    id: 2,
-    nombre: "Switch 24 puertos",
-    categoria: "Equipos",
-    stock: 3,
-    stockMinimo: 2,
-    unidad: "unidad"
-  },
-  {
-    id: 3,
-    nombre: "Conectores RJ45",
-    categoria: "Materiales",
-    stock: 100,
-    stockMinimo: 50,
-    unidad: "unidad"
-  }
-];
+const API_URL = "http://localhost:5000";
 
 function Inventario() {
   const navigate = useNavigate();
-  // A1: Usa context compartido para productos
-  const { productos, actualizarProductos } = useInventario();
+  const { showAlert } = useAlert();
+  // Usa context compartido para productos (datos del backend)
+  const { productos, loading, refrescar } = useInventario();
 
   const [busqueda, setBusqueda] = useState('');
   const [categoriaFilter, setCategoriaFilter] = useState('Todas');
   const [stockFilter, setStockFilter] = useState('Todos'); // RF-12: filtro por nivel de stock
 
-  // Carga inicial: si no hay datos en context/localStorage, usar mock
-  useEffect(function () {
-    if (productos.length === 0) {
-      const saved = localStorage.getItem('inventario_app');
-      if (saved == null) {
-        actualizarProductos(productosMock);
-      }
-    }
-  }, []);
-
-  // Eliminar un producto de la lista
-  function handleDeleteProducto(id) {
+  // Eliminar un producto mediante el backend
+  async function handleDeleteProducto(id) {
     if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
-      const filtered = productos.filter(function (p) {
-        return p.id !== id;
-      });
-      actualizarProductos(filtered);
+      try {
+        const response = await fetch(`${API_URL}/productos/${id}`, {
+          method: "DELETE"
+        });
+
+        if (!response.ok) {
+          const data = await response.json().catch(function () { return {}; });
+          throw new Error(data.error || "Error al eliminar el producto");
+        }
+
+        showAlert("Producto eliminado correctamente.", "success");
+        refrescar();
+      } catch (error) {
+        showAlert(error.message, "error");
+      }
     }
   }
 
@@ -89,6 +66,15 @@ function Inventario() {
 
   // RF-13: M2 — Conteo centralizado de productos en stock crítico
   const totalCriticos = contarCriticos(productos);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <RefreshCw className="w-6 h-6 text-blue-500 animate-spin" />
+        <span className="ml-3 text-slate-500 font-medium">Cargando inventario...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
