@@ -90,8 +90,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  // Función vacía de compatibilidad para evitar que main.jsx falle
+  const syncUser = () => {};
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, syncUser }}>
       {children}
     </AuthContext.Provider>
   );
