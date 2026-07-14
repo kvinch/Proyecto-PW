@@ -8,7 +8,7 @@ function RegistroUsuario() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { showAlert } = useAlert();
-  const { getUsuarios, addUsuario, updateUsuario } = useUsuarios();
+  const { usuarios, getUsuarios, addUsuario, updateUsuario } = useUsuarios();
 
   const [nombre, setNombre] = useState("");
   const [usuario, setUsuario] = useState("");
@@ -17,25 +17,27 @@ function RegistroUsuario() {
   const [estado, setEstado] = useState("Activo");
   const [cargando, setCargando] = useState(false);
 
-  // Si hay un ID en la URL, cargamos los datos del usuario desde el backend para editarlos
+  // Carga inicial para obtener la lista si venimos directo por URL
   useEffect(function() {
     if (id != null) {
-      async function cargarUsuario() {
-        const { usuarios } = await getUsuarios();
-        const lista = Array.isArray(usuarios) ? usuarios : [];
-        const encontrado = lista.find(function(u) {
-          return u.id === Number(id);
-        });
-        if (encontrado != null) {
-          setNombre(encontrado.nombre);
-          setUsuario(encontrado.usuario);
-          setRol(encontrado.rol);
-          setEstado(encontrado.estado);
-        }
-      }
-      cargarUsuario();
+      getUsuarios();
     }
   }, [id]);
+
+  // Cuando la lista de usuarios se llena, buscamos el que queremos editar
+  useEffect(function() {
+    if (id != null && usuarios.length > 0) {
+      const encontrado = usuarios.find(function(u) {
+        return u.id === Number(id);
+      });
+      if (encontrado != null) {
+        setNombre(encontrado.nombre);
+        setUsuario(encontrado.usuario);
+        setRol(encontrado.rol);
+        setEstado(encontrado.estado);
+      }
+    }
+  }, [id, usuarios]);
 
   async function guardarUsuario(e) {
     e.preventDefault();
