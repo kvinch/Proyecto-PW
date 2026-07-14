@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import inventarioService from '../services/inventarioService';
 
-const API_URL = "http://localhost:5000";
 const InventarioContext = createContext(null);
 
 /**
@@ -13,24 +13,17 @@ export function InventarioProvider({ children }) {
   const [salidas, setSalidas] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Carga de datos desde el backend
+  // Carga de datos desde el backend usando el service centralizado
   const cargarDatos = useCallback(async function () {
     try {
       setLoading(true);
 
-      const [productosRes, entradasRes, salidasRes] = await Promise.all([
-        fetch(`${API_URL}/productos`),
-        fetch(`${API_URL}/entradas`),
-        fetch(`${API_URL}/salidas`)
+      const service = inventarioService();
+      const [productosData, entradasData, salidasData] = await Promise.all([
+        service.getProductos(),
+        service.getEntradas(),
+        service.getSalidas()
       ]);
-
-      if (!productosRes.ok || !entradasRes.ok || !salidasRes.ok) {
-        throw new Error("Error al cargar datos del backend");
-      }
-
-      const productosData = await productosRes.json();
-      const entradasData = await entradasRes.json();
-      const salidasData = await salidasRes.json();
 
       setProductos(productosData);
       setEntradas(entradasData);

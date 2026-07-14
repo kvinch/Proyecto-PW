@@ -3,8 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Package, ArrowLeft, Save } from "lucide-react";
 import { useAlert } from "../../context/AlertContext.jsx";
 import { useInventario } from "../../context/InventarioContext.jsx";
-
-const API_URL = "http://localhost:5000";
+import inventarioService from "../../services/inventarioService";
 
 function RegistroProducto() {
   const navigate = useNavigate();
@@ -20,17 +19,15 @@ function RegistroProducto() {
   const [unidad, setUnidad] = useState("unidad");
   const [loading, setLoading] = useState(false);
 
-  // Si hay un ID en la URL, cargamos los datos del producto desde el backend
+  // Si hay un ID en la URL, cargamos los datos del producto usando el service
   useEffect(function() {
     if (id != null) {
-      fetch(`${API_URL}/productos/${id}`)
-        .then(function(response) {
-          if (!response.ok) {
-            throw new Error("Producto no encontrado");
-          }
-          return response.json();
-        })
+      const service = inventarioService();
+      service.getProductoById(id)
         .then(function(producto) {
+          if (producto.error) {
+            throw new Error(producto.error);
+          }
           setNombre(producto.nombre);
           setCategoria(producto.categoria);
           setStock(producto.stock);
@@ -72,28 +69,19 @@ function RegistroProducto() {
         unidad: unidad
       };
 
-      let response;
+      const service = inventarioService();
+      let data;
 
       if (id != null) {
         // Modo edición (RF-11): PUT al backend
-        response = await fetch(`${API_URL}/productos/${id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        });
+        data = await service.updateProducto(id, body);
       } else {
         // Modo creación (RF-10): POST al backend
-        response = await fetch(`${API_URL}/productos`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        });
+        data = await service.addProducto(body);
       }
 
-      const data = await response.json().catch(function () { return {}; });
-
-      if (!response.ok) {
-        throw new Error(data.error || "Error al guardar el producto");
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       // Refrescar el contexto global para que otros módulos vean los cambios
