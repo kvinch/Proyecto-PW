@@ -73,6 +73,24 @@ const inventarioService = () => {
         return data
     }
 
+    const addEntradas = async (entrada) => {
+
+    const resp = await fetch(`${API_URL}/entradas`, {
+        method: "POST",
+        body: JSON.stringify(entrada),
+        headers: {
+            "Content-Type": "application/json"
+        }
+    })
+
+    if (!resp.ok) {
+        console.error("Hubo un error al registrar la entrada")
+        return await resp.json()
+    }
+
+    return await resp.json()
+}
+
     // ─── Salidas ─────────────────────────────────────────────────
 
     const getSalidas = async () => {
@@ -88,6 +106,7 @@ const inventarioService = () => {
         updateProducto,
         deleteProducto,
         getEntradas,
+        addEntradas,
         getSalidas
     }
 }

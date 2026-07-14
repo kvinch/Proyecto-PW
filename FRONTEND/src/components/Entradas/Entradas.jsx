@@ -4,8 +4,10 @@ import TablaEntradas from "./TablaEntradas";
 import { useInventario } from "../../context/InventarioContext";
 import { useAlert } from "../../context/AlertContext";
 import { contarCriticos } from "../../utils/inventario";
+import inventarioService from "../../services/InventarioService";
 
 function Entradas() {
+  const service = inventarioService();
   const { showAlert } = useAlert();
   // A1: Usa context compartido en lugar de localStorage aislado
   const { productos, entradas, actualizarProductos, actualizarEntradas } = useInventario();
@@ -27,7 +29,7 @@ function Entradas() {
     });
   }
 
-  function registrarEntrada(e) {
+  async function registrarEntrada(e) {
     e.preventDefault();
 
     if (
@@ -41,27 +43,36 @@ function Entradas() {
       return;
     }
 
-    const nuevaEntrada = {
-      id: crypto.randomUUID(),
-      ...formData,
-      cantidad: Number(formData.cantidad)
-    };
-
-    const listaEntradas = [...entradas, nuevaEntrada];
-
-    const inventarioActualizado = productos.map(function (producto) {
-      if (producto.nombre === formData.producto) {
-        return {
-          ...producto,
-          stock: Number(producto.stock) + Number(formData.cantidad)
-        };
-      }
-      return producto;
+    const productoSeleccionado = productos.find(function (producto) {
+      return producto.nombre === formData.producto;
     });
 
-    // A1: Actualiza a través del context para que otros módulos se sincronicen
-    actualizarProductos(inventarioActualizado);
-    actualizarEntradas(listaEntradas);
+    if (!productoSeleccionado) {
+      showAlert("El producto seleccionado no existe.", "error");
+      return;
+    }
+
+    const respuesta = await service.addEntrada({
+      cantidad: Number(formData.cantidad),
+      proveedor: formData.proveedor,
+      responsable: formData.responsable,
+      fecha: formData.fecha,
+      observacion: formData.observacion,
+      productoId: productoSeleccionado.id
+    });
+
+    // Si hubo un error al registrar
+    if (respuesta.error) {
+      showAlert(respuesta.error, "error");
+      return;
+    }
+
+    // Volver a cargar los datos desde el backend
+    const nuevosProductos = await service.getProductos();
+    actualizarProductos(nuevosProductos);
+
+    const nuevasEntradas = await service.getEntradas();
+    actualizarEntradas(nuevasEntradas);
 
     showAlert("Entrada registrada correctamente.", "success");
 
