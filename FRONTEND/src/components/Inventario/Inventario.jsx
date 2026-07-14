@@ -5,8 +5,7 @@ import ItemProducto from './ItemProducto';
 import { useInventario } from '../../context/InventarioContext';
 import { esCritico, isStockEnRiesgo, contarCriticos } from '../../utils/inventario';
 import { useAlert } from '../../context/AlertContext';
-
-const API_URL = "http://localhost:5000";
+import inventarioService from '../../services/inventarioService';
 
 function Inventario() {
   const navigate = useNavigate();
@@ -18,17 +17,15 @@ function Inventario() {
   const [categoriaFilter, setCategoriaFilter] = useState('Todas');
   const [stockFilter, setStockFilter] = useState('Todos'); // RF-12: filtro por nivel de stock
 
-  // Eliminar un producto mediante el backend
+  // Eliminar un producto mediante el service centralizado
   async function handleDeleteProducto(id) {
     if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
       try {
-        const response = await fetch(`${API_URL}/productos/${id}`, {
-          method: "DELETE"
-        });
+        const service = inventarioService();
+        const data = await service.deleteProducto(id);
 
-        if (!response.ok) {
-          const data = await response.json().catch(function () { return {}; });
-          throw new Error(data.error || "Error al eliminar el producto");
+        if (data.error) {
+          throw new Error(data.error);
         }
 
         showAlert("Producto eliminado correctamente.", "success");
