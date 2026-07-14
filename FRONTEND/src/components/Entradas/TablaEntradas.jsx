@@ -13,12 +13,18 @@ function TablaEntradas(props) {
   }, [entradas]);
 
   const entradasFiltradas = entradas.filter(function (entrada) {
-    const coincideBusqueda = entrada.producto
+    const nombreProducto =
+      typeof entrada.producto === "string"
+        ? entrada.producto
+        : entrada.producto?.nombre || "";
+
+    const coincideBusqueda = nombreProducto
       .toLowerCase()
       .includes(busqueda.toLowerCase());
 
     const coincideResponsable =
-      filtroResponsable === "Todos" || entrada.responsable === filtroResponsable;
+      filtroResponsable === "Todos" ||
+      entrada.responsable === filtroResponsable;
 
     return coincideBusqueda && coincideResponsable;
   });
@@ -80,7 +86,9 @@ function TablaEntradas(props) {
               entradasFiltradas.map(function (entrada) {
                 return (
                   <tr key={entrada.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-3.5 text-slate-700 font-medium">{entrada.producto}</td>
+                    <td className="px-6 py-3.5 text-slate-700 font-medium">{typeof entrada.producto === "string"
+                      ? entrada.producto
+                      : entrada.producto?.nombre || "Producto desconocido"}</td>
                     <td className="px-6 py-3.5">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-700 font-semibold">
                         +{entrada.cantidad}
