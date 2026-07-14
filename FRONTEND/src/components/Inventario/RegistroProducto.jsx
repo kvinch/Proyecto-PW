@@ -39,7 +39,7 @@ function RegistroProducto() {
           navigate("/Inventarios");
         });
     }
-  }, [id]);
+  }, [id, navigate, showAlert]);
 
   // Función guardar con soporte para creación y edición (RF-10 y RF-11)
   async function guardarProducto() {

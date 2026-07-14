@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 /**
  * AuthContext — Gestión de sesión del usuario autenticado.
@@ -53,13 +54,13 @@ export const AuthProvider = ({ children }) => {
     if (savedSession) {
       try {
         return JSON.parse(savedSession);
-      } catch (e) {
+      } catch {
         return null;
       }
     }
     return null;
   });
-  const [loading, setLoading] = useState(false);
+  const loading = false;
 
   // Persistir sesión en sessionStorage cuando cambia el usuario
   useEffect(() => {
@@ -74,7 +75,7 @@ export const AuthProvider = ({ children }) => {
    * login — Delega la autenticación al backend.
    * Recibe el objeto de respuesta del servicio (con { success, user } o { error }).
    */
-  const login = (respuestaBackend) => {
+  const login = useCallback((respuestaBackend) => {
     if (respuestaBackend?.success && respuestaBackend?.user) {
       setUser(respuestaBackend.user);
       return { success: true };
@@ -83,15 +84,15 @@ export const AuthProvider = ({ children }) => {
       success: false,
       error: respuestaBackend?.error || 'Credenciales inválidas.'
     };
-  };
+  }, []);
 
   // Cierra sesión (limpia estado y sessionStorage)
-  const logout = () => {
+  const logout = useCallback(() => {
     setUser(null);
-  };
+  }, []);
 
   // Función vacía de compatibilidad para evitar que main.jsx falle
-  const syncUser = () => {};
+  const syncUser = useCallback(() => {}, []);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, syncUser }}>

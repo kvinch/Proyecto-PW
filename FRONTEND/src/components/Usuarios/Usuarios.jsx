@@ -19,7 +19,7 @@ function Usuarios() {
   // Carga inicial desde el backend
   useEffect(function() {
     getUsuarios();
-  }, []);
+  }, [getUsuarios]);
 
   // Limpiar todos los filtros aplicados
   function handleResetFilters() {
