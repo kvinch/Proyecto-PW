@@ -22,7 +22,7 @@ function RegistroUsuario() {
     if (id != null) {
       getUsuarios();
     }
-  }, [id]);
+  }, [id, getUsuarios]);
 
   // Cuando la lista de usuarios se llena, buscamos el que queremos editar
   useEffect(function() {
@@ -31,10 +31,16 @@ function RegistroUsuario() {
         return u.id === Number(id);
       });
       if (encontrado != null) {
-        setNombre(encontrado.nombre);
-        setUsuario(encontrado.usuario);
-        setRol(encontrado.rol);
-        setEstado(encontrado.estado);
+        const timer = setTimeout(function() {
+          setNombre(encontrado.nombre);
+          setUsuario(encontrado.usuario);
+          setRol(encontrado.rol);
+          setEstado(encontrado.estado);
+        }, 0);
+
+        return function() {
+          clearTimeout(timer);
+        };
       }
     }
   }, [id, usuarios]);
@@ -75,7 +81,7 @@ function RegistroUsuario() {
       }
 
       navigate("/usuarios");
-    } catch (err) {
+    } catch {
       showAlert("Ocurrió un error al guardar. Intenta de nuevo.", "error");
     } finally {
       setCargando(false);

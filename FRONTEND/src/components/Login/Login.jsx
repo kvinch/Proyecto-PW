@@ -40,7 +40,7 @@ const Login = () => {
       } else {
         setError(res.error);
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión con el servidor.');
     } finally {
       setLoading(false);
