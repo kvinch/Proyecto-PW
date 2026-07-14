@@ -5,6 +5,9 @@ import { PrismaClient } from "./generated/prisma/index.js"
 import { Pool } from "pg"
 import { PrismaPg } from "@prisma/adapter-pg"
 import 'dotenv/config'
+import bcrypt from "bcryptjs"
+import crypto from "crypto"
+
 
 const app = express()
 const PORT = process.env["PORT"] || 5000
@@ -27,6 +30,141 @@ const prisma = new PrismaClient({ adapter })
 app.listen(PORT, () => {
     console.log("Servidor iniciado")
 })
+
+app.get("/users", async (req, res) => {
+    try {
+        const users = await prisma.user.findMany();
+        const safeUsers = users.map(u => {
+            const { contrasena, ...rest } = u;
+            return rest;
+        });
+        res.json(safeUsers);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al obtener usuarios" });
+    }
+});
+
+app.post("/users", async (req, res) => {
+    try {
+        const { nombre, usuario, contrasena, rol, estado } = req.body;
+        
+        if (!nombre || !usuario || !contrasena) {
+            return res.status(400).json({ error: "Faltan campos obligatorios" });
+        }
+
+        const exists = await prisma.user.findUnique({
+            where: { usuario: usuario.trim().toLowerCase() }
+        });
+
+        if (exists) {
+            return res.status(400).json({ error: "El usuario ya existe" });
+        }
+
+        const newUser = await prisma.user.create({
+            data: {
+                nombre: nombre.trim(),
+                usuario: usuario.trim().toLowerCase(),
+                rol: rol || "Operario",
+                estado: estado || "Activo",
+                contrasena: bcrypt.hashSync(contrasena.trim(), 10)
+            }
+        });
+        
+        const { contrasena: _, ...safeUser } = newUser;
+        res.status(201).json(safeUser);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al crear usuario" });
+    }
+});
+
+app.put("/users/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nombre, usuario, contrasena, rol, estado } = req.body;
+
+        const userId = parseInt(id, 10);
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: "ID de usuario inválido. Asegúrese de que sea un número (la base de datos usa autoincremental)." });
+        }
+
+        const existingUser = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!existingUser) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        if (usuario) {
+            const userWithSameName = await prisma.user.findUnique({
+                where: { usuario: usuario.trim().toLowerCase() }
+            });
+
+            if (userWithSameName && userWithSameName.id !== userId) {
+                return res.status(400).json({ error: "El nombre de usuario ya está en uso" });
+            }
+        }
+
+        const dataToUpdate = {
+            nombre: nombre ? nombre.trim() : existingUser.nombre,
+            usuario: usuario ? usuario.trim().toLowerCase() : existingUser.usuario,
+            rol: rol || existingUser.rol,
+            estado: estado || existingUser.estado,
+        };
+
+        if (contrasena && contrasena.trim() !== "") {
+            dataToUpdate.contrasena = bcrypt.hashSync(contrasena.trim(), 10);
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: dataToUpdate
+        });
+
+        const { contrasena: _, ...safeUser } = updatedUser;
+        res.json(safeUser);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al actualizar usuario" });
+    }
+});
+
+app.post("/login", async (req, res) => {
+    try {
+        const { usuario, contrasena } = req.body;
+        
+        if (!usuario || !contrasena) {
+            return res.status(400).json({ error: "Usuario y contraseña son requeridos" });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { usuario: usuario.trim().toLowerCase() }
+        });
+
+        if (!user) {
+            return res.status(401).json({ error: "Credenciales inválidas" });
+        }
+
+        if (user.estado !== "Activo") {
+            return res.status(401).json({ error: "Usuario inactivo" });
+        }
+
+        const isValid = bcrypt.compareSync(contrasena, user.contrasena);
+        if (!isValid) {
+            return res.status(401).json({ error: "Credenciales inválidas" });
+        }
+
+        const { contrasena: _, ...safeUser } = user;
+        res.json({ success: true, user: safeUser });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error durante el inicio de sesión" });
+    }
+});
+
+
 // ---------- RF-12: Consulta de Inventario con Filtros ----------
 app.get("/productos", async (req, res) => {
     try {
