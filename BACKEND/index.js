@@ -17,9 +17,6 @@ app.use(bodyParser.urlencoded({
     extended: true
 }))
 
-console.log("DB_URL", process.env["DATABASE_URL"])
-
-
 const pool = new Pool({
     connectionString: process.env["DATABASE_URL"],
     ssl: {
@@ -513,5 +510,235 @@ app.post("/salidas", async (req, res) => {
         res.status(500).json({
             error: "Error al registrar la salida"
         })
+    }
+})
+
+function normalizarMovimiento(movimiento, tipo) {
+    return {
+        id: movimiento.id,
+        tipo,
+        cantidad: movimiento.cantidad,
+        responsable: movimiento.responsable,
+        fecha: movimiento.fecha,
+        observacion: movimiento.observacion,
+        productoId: movimiento.productoId,
+        producto: movimiento.producto,
+        detalle: tipo === "Entrada" ? movimiento.proveedor : movimiento.motivo
+    }
+}
+
+function ordenarMovimientos(movimientos) {
+    return movimientos.sort((a, b) => {
+        const diferenciaFecha = new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
+        if (diferenciaFecha !== 0) return diferenciaFecha
+        return Number(b.id) - Number(a.id)
+    })
+}
+
+function leerFecha(valor, finDelDia = false) {
+    if (!valor) return null
+    if (typeof valor !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(valor)) return undefined
+
+    const fecha = new Date(`${valor}T${finDelDia ? "23:59:59.999" : "00:00:00.000"}Z`)
+    return Number.isNaN(fecha.getTime()) ? undefined : fecha
+}
+
+function construirFiltrosReporte(query) {
+    const desde = leerFecha(query.desde)
+    const hasta = leerFecha(query.hasta, true)
+
+    if (desde === undefined || hasta === undefined) {
+        return { error: "Las fechas deben tener el formato YYYY-MM-DD" }
+    }
+    if (desde && hasta && desde > hasta) {
+        return { error: "La fecha inicial no puede ser posterior a la fecha final" }
+    }
+
+    let productoId
+    if (query.productoId) {
+        productoId = Number(query.productoId)
+        if (!Number.isInteger(productoId) || productoId <= 0) {
+            return { error: "El producto indicado no es valido" }
+        }
+    }
+
+    const tipo = String(query.tipo || "todos").toLowerCase()
+    if (!["todos", "entrada", "salida"].includes(tipo)) {
+        return { error: "El tipo debe ser entrada, salida o todos" }
+    }
+
+    return {
+        tipo,
+        where: {
+            ...(productoId ? { productoId } : {}),
+            ...((desde || hasta) ? {
+                fecha: {
+                    ...(desde ? { gte: desde } : {}),
+                    ...(hasta ? { lte: hasta } : {})
+                }
+            } : {})
+        }
+    }
+}
+
+// ---------- Dashboard ----------
+app.get("/dashboard/resumen", async (req, res) => {
+    try {
+        const [productos, entradasResumen, salidasResumen, entradasRecientes, salidasRecientes] = await Promise.all([
+            prisma.producto.findMany({ orderBy: { nombre: "asc" } }),
+            prisma.entradas.aggregate({ _count: { id: true }, _sum: { cantidad: true } }),
+            prisma.salidas.aggregate({ _count: { id: true }, _sum: { cantidad: true } }),
+            prisma.entradas.findMany({
+                include: { producto: true },
+                orderBy: [{ fecha: "desc" }, { id: "desc" }],
+                take: 8
+            }),
+            prisma.salidas.findMany({
+                include: { producto: true },
+                orderBy: [{ fecha: "desc" }, { id: "desc" }],
+                take: 8
+            })
+        ])
+
+        const productosCriticos = productos.filter((producto) => producto.stock <= producto.stockMinimo)
+        const movimientosRecientes = ordenarMovimientos([
+            ...entradasRecientes.map((entrada) => normalizarMovimiento(entrada, "Entrada")),
+            ...salidasRecientes.map((salida) => normalizarMovimiento(salida, "Salida"))
+        ]).slice(0, 8)
+
+        res.json({
+            totales: {
+                productos: productos.length,
+                stock: productos.reduce((total, producto) => total + producto.stock, 0),
+                entradas: entradasResumen._count.id,
+                salidas: salidasResumen._count.id,
+                unidadesEntrada: entradasResumen._sum.cantidad || 0,
+                unidadesSalida: salidasResumen._sum.cantidad || 0,
+                criticos: productosCriticos.length
+            },
+            productos,
+            productosCriticos,
+            movimientosRecientes
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Error al obtener el resumen del dashboard" })
+    }
+})
+
+// ---------- Reportes ----------
+app.get("/reportes/movimientos", async (req, res) => {
+    const filtros = construirFiltrosReporte(req.query)
+    if (filtros.error) return res.status(400).json({ error: filtros.error })
+
+    try {
+        const consultas = []
+
+        if (filtros.tipo !== "salida") {
+            consultas.push(
+                prisma.entradas.findMany({
+                    where: filtros.where,
+                    include: { producto: true },
+                    orderBy: [{ fecha: "desc" }, { id: "desc" }]
+                }).then((entradas) => entradas.map((entrada) => normalizarMovimiento(entrada, "Entrada")))
+            )
+        }
+
+        if (filtros.tipo !== "entrada") {
+            consultas.push(
+                prisma.salidas.findMany({
+                    where: filtros.where,
+                    include: { producto: true },
+                    orderBy: [{ fecha: "desc" }, { id: "desc" }]
+                }).then((salidas) => salidas.map((salida) => normalizarMovimiento(salida, "Salida")))
+            )
+        }
+
+        const resultados = await Promise.all(consultas)
+        const movimientos = ordenarMovimientos(resultados.flat())
+        const totalEntradas = movimientos
+            .filter((movimiento) => movimiento.tipo === "Entrada")
+            .reduce((total, movimiento) => total + movimiento.cantidad, 0)
+        const totalSalidas = movimientos
+            .filter((movimiento) => movimiento.tipo === "Salida")
+            .reduce((total, movimiento) => total + movimiento.cantidad, 0)
+
+        res.json({
+            movimientos,
+            resumen: {
+                movimientos: movimientos.length,
+                unidadesEntrada: totalEntradas,
+                unidadesSalida: totalSalidas,
+                balance: totalEntradas - totalSalidas
+            }
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Error al generar el reporte de movimientos" })
+    }
+})
+
+app.get("/reportes/stock-critico", async (req, res) => {
+    try {
+        const productos = await prisma.producto.findMany({ orderBy: { stock: "asc" } })
+        res.json(productos.filter((producto) => producto.stock <= producto.stockMinimo))
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Error al obtener el reporte de stock critico" })
+    }
+})
+
+app.get("/reportes/categorias", async (req, res) => {
+    try {
+        const productos = await prisma.producto.findMany({ orderBy: { categoria: "asc" } })
+        const categorias = new Map()
+
+        productos.forEach((producto) => {
+            const actual = categorias.get(producto.categoria) || {
+                categoria: producto.categoria,
+                productos: 0,
+                stock: 0,
+                criticos: 0
+            }
+            actual.productos += 1
+            actual.stock += producto.stock
+            if (producto.stock <= producto.stockMinimo) actual.criticos += 1
+            categorias.set(producto.categoria, actual)
+        })
+
+        res.json(Array.from(categorias.values()))
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Error al obtener el reporte por categorias" })
+    }
+})
+
+app.get("/reportes/producto/:id", async (req, res) => {
+    const productoId = Number(req.params.id)
+    if (!Number.isInteger(productoId) || productoId <= 0) {
+        return res.status(400).json({ error: "El producto indicado no es valido" })
+    }
+
+    try {
+        const producto = await prisma.producto.findUnique({
+            where: { id: productoId },
+            include: {
+                entradas: { orderBy: [{ fecha: "desc" }, { id: "desc" }] },
+                salidas: { orderBy: [{ fecha: "desc" }, { id: "desc" }] }
+            }
+        })
+
+        if (!producto) return res.status(404).json({ error: "Producto no encontrado" })
+
+        const movimientos = ordenarMovimientos([
+            ...producto.entradas.map((entrada) => normalizarMovimiento({ ...entrada, producto: null }, "Entrada")),
+            ...producto.salidas.map((salida) => normalizarMovimiento({ ...salida, producto: null }, "Salida"))
+        ])
+
+        const { entradas, salidas, ...datosProducto } = producto
+        res.json({ producto: datosProducto, movimientos })
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({ error: "Error al obtener el reporte del producto" })
     }
 })

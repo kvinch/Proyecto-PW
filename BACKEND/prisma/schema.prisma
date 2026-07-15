@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider= "postgresql"
+  provider = "postgresql"
 }
 
 model User {
@@ -22,19 +22,23 @@ model User {
 }
 
 model Producto {
-  id          Int    @id @default(autoincrement())
-  nombre      String @unique
+  id          Int        @id @default(autoincrement())
+  nombre      String     @unique
   categoria   String
   stock       Int
   stockMinimo Int
   unidad      String
   entradas    Entradas[]
   salidas     Salidas[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([categoria])
+  @@index([stock])
 }
 
 model Entradas {
-
-  id          Int    @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   cantidad    Int
   proveedor   String
   responsable String
@@ -42,12 +46,15 @@ model Entradas {
   observacion String?
   productoId  Int
   producto    Producto @relation(fields: [productoId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  @@index([fecha])
+  @@index([productoId])
 }
 
 model Salidas {
-
-  id          Int    @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   cantidad    Int
   motivo      String
   responsable String
@@ -55,5 +62,9 @@ model Salidas {
   observacion String?
   productoId  Int
   producto    Producto @relation(fields: [productoId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  @@index([fecha])
+  @@index([productoId])
 }
